@@ -153,7 +153,7 @@ export class GoogleCalendarOracle implements Oracle {
       const u = new URL(EVENTS_URL);
       u.searchParams.set('timeMin', q.timeMin);
       u.searchParams.set('timeMax', q.timeMax);
-      if (q.q) u.searchParams.set('q', q.q);
+      // Google's q matches whole words ("Dent" finds nothing in "Dentist"); the window is small, so list it all and match the title here
       u.searchParams.set('singleEvents', 'true');
       u.searchParams.set('orderBy', 'startTime');
       u.searchParams.set('maxResults', '20');

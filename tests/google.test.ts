@@ -75,7 +75,7 @@ describe('Google Calendar oracle (AC-6, T05)', () => {
     expect(call?.auth).toBe('Bearer ga-1');
     const q = new URL(call!.url).searchParams;
     expect(q.get('timeMin')).toBe('2026-10-22T13:30:00.000Z');
-    expect(q.get('q')).toBe('Dental');
+    expect(q.get('q')).toBeNull(); // the title is matched here, not by Google's whole-word q
     expect(q.get('singleEvents')).toBe('true');
     expect(oracle.describe()).toMatch(/Google Calendar/);
   });
