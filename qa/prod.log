@@ -1,0 +1,10 @@
+
+> receipts@0.1.0 start
+> next start -p 3101
+
+▲ Next.js 16.4.2
+- Local:         http://localhost:3101
+- Network:       http://10.255.255.254:3101
+✓ Ready in 374ms
+✓ Running next.config.ts took 79ms
+⚠ metadataBase property in metadata export is not set for resolving social open graph or twitter images, using "http://localhost:3101". See https://nextjs.org/docs/app/api-reference/functions/generate-metadata#metadatabase

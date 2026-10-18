@@ -70,6 +70,7 @@ export function TraceDrawer({
 }) {
   const closeRef = useRef<HTMLButtonElement>(null);
   useEffect(() => {
+    const opener = returnFocusTo?.current ?? null;
     closeRef.current?.focus();
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onClose();
@@ -77,7 +78,7 @@ export function TraceDrawer({
     window.addEventListener('keydown', onKey);
     return () => {
       window.removeEventListener('keydown', onKey);
-      returnFocusTo?.current?.focus();
+      opener?.focus();
     };
   }, [onClose, returnFocusTo]);
 

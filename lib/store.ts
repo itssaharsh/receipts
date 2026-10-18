@@ -234,3 +234,11 @@ export function deleteAllTasks(db: Db): void {
   db.prepare('delete from tasks').run();
   db.prepare('delete from trace_events').run();
 }
+
+/** The demo reset: tasks, trace and rules back to the defaults (connections are kept). */
+export function resetLedger(db: Db): void {
+  deleteAllTasks(db);
+  db.prepare('delete from rules').run();
+  db.prepare('delete from contacts').run();
+  ensureDefaults(db);
+}

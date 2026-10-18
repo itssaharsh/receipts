@@ -2,6 +2,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { NextRequest } from 'next/server';
 import { getDb } from '@/lib/db';
 import { resetFo } from '@/lib/fo/client';
+import { localWallISO } from '@/lib/oracle';
 import { ensureDefaults } from '@/lib/store';
 import { GET as getTasks, POST as postTask } from '@/app/api/tasks/route';
 import { POST as pollTask } from '@/app/api/tasks/[id]/poll/route';
@@ -37,7 +38,7 @@ describe('API routes: tasks, trace, export, runs (AC-10)', () => {
         counterparty: 'Northfield Dental',
         amountCents: 0,
         category: 'booking',
-        postcondition: { kind: 'calendar_event', titleContains: 'Dental', startISO: '2026-10-22T15:00:00+01:00', windowMinutes: 30 },
+        postcondition: { kind: 'calendar_event', titleContains: 'Dental', startISO: localWallISO(2026, 10, 22, 15, 0), windowMinutes: 30 },
       }),
     );
     expect(res.status).toBe(201);

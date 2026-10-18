@@ -476,8 +476,10 @@
         "observe: backup take recorded and its path written to .prod-build/state.md"
       ],
       "rollback": "none; a file",
-      "status": "todo",
-      "notes": "The judged take must be FO_MODE=live; this one is the fallback only"
+      "status": "doing",
+      "notes": "The judged take must be FO_MODE=live; this one is the fallback only",
+      "base": "277c411",
+      "started_after": 65
     },
     {
       "id": "T09",

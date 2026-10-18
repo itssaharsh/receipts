@@ -51,10 +51,21 @@ export class NoOracle implements Oracle {
   }
 }
 
-/** The event the simulated calendar holds, matching the demo task (Thu 22 Oct 2026, 15:00 London). */
-export const FAKE_CALENDAR_DEFAULT: CalendarEventLite[] = [
-  { id: 'ev-fake-dental', summary: 'Northfield Dental check-up', start: '2026-10-22T15:00:00+01:00', end: '2026-10-22T15:30:00+01:00' },
-];
+/** "2026-10-22T15:00:00+05:30": the given wall-clock time in this process's own zone, with its offset. */
+export function localWallISO(y: number, m: number, d: number, h: number, mi: number): string {
+  const dt = new Date(y, m - 1, d, h, mi);
+  const off = -dt.getTimezoneOffset();
+  const sign = off >= 0 ? '+' : '-';
+  const p = (n: number) => String(n).padStart(2, '0');
+  return `${y}-${p(m)}-${p(d)}T${p(h)}:${p(mi)}:00${sign}${p(Math.floor(Math.abs(off) / 60))}:${p(Math.abs(off) % 60)}`;
+}
+
+/** The event the simulated calendar holds: the demo booking, Thu 22 Oct 2026 at 15:00 in this machine's own zone (the browser on the same machine fills the same wall time). */
+export function fakeCalendarDefault(): CalendarEventLite[] {
+  return [{ id: 'ev-fake-dental', summary: 'Northfield Dental check-up', start: localWallISO(2026, 10, 22, 15, 0), end: localWallISO(2026, 10, 22, 15, 30) }];
+}
+
+export const FAKE_CALENDAR_DEFAULT: CalendarEventLite[] = fakeCalendarDefault();
 
 type OracleFactory = (db: Db) => Oracle | null;
 type GlobalWithOracle = typeof globalThis & { __receiptsOracleFactory?: OracleFactory; __receiptsFakeOracle?: FakeCalendarOracle };
@@ -67,7 +78,7 @@ export function registerLiveOracle(factory: OracleFactory): void {
 export function getOracle(db: Db): Oracle {
   const g = globalThis as GlobalWithOracle;
   if (process.env.ORACLE_MODE === 'fake') {
-    if (!g.__receiptsFakeOracle) g.__receiptsFakeOracle = new FakeCalendarOracle([...FAKE_CALENDAR_DEFAULT]);
+    if (!g.__receiptsFakeOracle) g.__receiptsFakeOracle = new FakeCalendarOracle(fakeCalendarDefault());
     return g.__receiptsFakeOracle;
   }
   const live = g.__receiptsOracleFactory?.(db);
