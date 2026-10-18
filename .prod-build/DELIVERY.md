@@ -1,4 +1,4 @@
-# Delivery report — Receipts (hackathon, 2026-10-18, updated 11:30 UTC)
+# Delivery report — Receipts (hackathon, 2026-10-18, updated 16:40 UTC)
 
 ## Built
 - J1 (ask → rules → send or hold → Fo works → claim → calendar check → receipt): complete, with the held card's three decisions, the auto-answer of Fo's confirmation question from the approval, one re-ask after an empty check, and the manual tick shown as "confirmed by you".
@@ -23,7 +23,7 @@
 - Submission check: NOT READY as expected; it failed only on the four event rules that a person must attest or that need the real run, every repository-side item ok [E0112]; window check passed [E0115].
 - Intake drafter: 66 tests including the words-only drafter, the model adapter with a fake fetch (invented names dropped, timeout, errors), the route and the trace event [E0116]; typecheck, build and lint [E0117, E0118, E0119]; live against the gateway and in a browser on the dev server, fields filled in 1.3 s, trace holds the draft event, nobody-named sentence stops before sending [E0120].
 - Public demo mode: tests, typecheck and build [E0121, E0122, E0123]; the same production build with PUBLIC_DEMO=1 on :3101 passed the scripted take, axe (0 violations) and a console check [E0124].
-- Live run with the real Fo and the real calendar: not run; it needs the person's Wajo and Google accounts (T12).
+- Live runs with the real Fo from the person's Wajo account: four, the last two verified by the app's own Google Calendar read [E0126, E0127, E0128]; the live take (run run-20261018-8427) recorded as one uncut 1x capture with narration, 149.6 s, judged-profile QA with every beat and no gaps [E0129]. The live schema and the live server's habits were learned from the first runs and fixed (ask_fo takes message, 401 at the first call, question-shaped completions, Fo's invite postscript, Google's whole-word q filter).
 
 ## Deployment
 - Public demo (simulated Fo and calendar, labelled; the drafter live through the gateway's OIDC token): https://receipts-lack-toes.vercel.app, Vercel team lack-toes, project receipts, deployment receipts-7lfb75499, Ready [E0124]. It answers 302 to Vercel Authentication until the person sets Deployment Protection to preview-only (a security setting auto mode refused to change for the agent), so the smoke of the public URL is not run; the same build and env were smoked on :3101 [E0124]. The judged run itself is a local screen recording on http://localhost:3100 with localhost OAuth redirects. Rollback: `vercel rollback` to the previous deployment, or set PUBLIC_DEMO off.
@@ -58,5 +58,6 @@
 
 ## Next steps
 - The person, first: Vercel Deployment Protection to preview-only; `gh repo create receipts --public --source=. --remote=origin --push`.
-- The person: Wajo account above Fo Mini with Google Calendar connected inside Wajo; a Google Cloud OAuth client with redirect http://localhost:3100/api/google/callback; `.env.local`; the live take per take-script.md; export the trace into submission/, update the run count, confirm the four rules, post on X by 2026-10-19 10:15 AM PT, fill the form by 2026-10-20 10:15 AM PT.
+- Done by the person on 18 Oct: Wajo OAuth, Google OAuth client and consent, the Calendar API, the GitHub repository, the X posts scheduled. Left: Vercel Deployment Protection to preview-only; the quote-post with the video on Mon 19 Oct between 10:00 and 10:15 AM PT; the form by Tue 20 Oct 10:15 AM PT; `pb.py rules confirm` for the three attest rules.
+- Earlier list, kept for the record. The person: Wajo account above Fo Mini with Google Calendar connected inside Wajo; a Google Cloud OAuth client with redirect http://localhost:3100/api/google/callback; `.env.local`; the live take per take-script.md; export the trace into submission/, update the run count, confirm the four rules, post on X by 2026-10-19 10:15 AM PT, fill the form by 2026-10-20 10:15 AM PT.
 - Then: push the repository to a public remote and put its URL and the video URL in SUBMISSION.md and the README.
