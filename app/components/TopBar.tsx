@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import type { RunCount } from '@/lib/types';
 
-export type ConnStatus = { mode: 'live' | 'fake'; foConnected: boolean; foSimulated: boolean; googleConnected: boolean };
+export type ConnStatus = { mode: 'live' | 'fake'; foConnected: boolean; foSimulated: boolean; googleConnected: boolean; googleSimulated?: boolean };
 
 export function Mark({ size = 22 }: { size?: number }) {
   // A counterfoil: a slip with a perforated cut and the verified disc on the stub.
@@ -41,14 +41,14 @@ export function TopBar({ runCount, status, onRunsClick }: { runCount: RunCount; 
           {runCount.sent}/{runCount.verified}
         </button>
         <Chip label="Fo" connected={status.foConnected} simulated={status.foSimulated} />
-        <Chip label="Calendar" connected={status.googleConnected} />
+        <Chip label="Calendar" connected={status.googleConnected} simulated={status.googleSimulated} />
       </div>
     </header>
   );
 }
 
 function Chip({ label, connected, simulated }: { label: string; connected: boolean; simulated?: boolean }) {
-  const title = simulated ? 'Simulated Fo for development; the recorded run uses the live Fo' : connected ? `${label} connected` : `${label} not connected: open /connect`;
+  const title = simulated ? `Simulated ${label} for development and the public demo; the recorded run uses the real one` : connected ? `${label} connected` : `${label} not connected: open /connect`;
   return (
     <Link href="/connect" className="inline-flex items-center gap-2 h-8 rounded-md border border-line px-2.5 text-[13px] text-ink" data-tooltip={title} title={title} aria-label={title}>
       <span className="disc" data-kind={connected ? (simulated ? 'awaiting' : 'connected') : 'allowed'} aria-hidden="true" />

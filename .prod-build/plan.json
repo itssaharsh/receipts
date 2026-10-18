@@ -706,7 +706,7 @@
     {
       "id": "T14",
       "title": "Public demo on Vercel: node:sqlite instead of the native module, PUBLIC_DEMO mode, deploy and smoke",
-      "status": "todo",
+      "status": "doing",
       "depends_on": [
         "T13"
       ],
@@ -730,7 +730,9 @@
         "npm run typecheck",
         "npm run build",
         "observe: the deployed URL answers /api/status and renders the ledger with the simulated run, no console errors"
-      ]
+      ],
+      "base": "518018f",
+      "started_after": 120
     },
     {
       "id": "T15",

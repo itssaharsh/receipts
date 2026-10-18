@@ -38,6 +38,7 @@ Wajo's Fo agent gets things done. Receipts proves it landed in your own calendar
 
 ## Links
 
-- Repository: this repository.
+- Repository: https://github.com/itssaharsh/receipts
+- Public demo (simulated Fo and calendar, labelled; the drafter is live): https://receipts-lack-toes.vercel.app
 - Video: attached to the X post (one unedited take).
 - Trace file: `submission/trace-<run>.jsonl`.

@@ -14,7 +14,8 @@ export async function GET() {
   return NextResponse.json({
     mode: opts.mode,
     fo: { connected: opts.mode === 'fake' ? true : fo.hasTokens(), simulated: opts.mode === 'fake', pendingAuthorization: !!fo.pendingAuthorizationUrl() },
-    google: { connected: !!google?.tokens },
+    google: { connected: process.env.ORACLE_MODE === 'fake' ? true : !!google?.tokens, simulated: process.env.ORACLE_MODE === 'fake' },
+    publicDemo: process.env.PUBLIC_DEMO === '1',
     now: new Date().toISOString(),
   });
 }

@@ -32,7 +32,7 @@ async function api<T>(path: string, body?: unknown, method = body === undefined 
   return data;
 }
 
-export function Ledger({ initial, fixture, record, demo }: { initial: LedgerInitial; fixture: FixtureState | null; record: boolean; demo?: boolean }) {
+export function Ledger({ initial, fixture, record, demo, publicDemo, repoUrl }: { initial: LedgerInitial; fixture: FixtureState | null; record: boolean; demo?: boolean; publicDemo?: boolean; repoUrl?: string | null }) {
   const [replay, setReplay] = useState<Replay | null>(null);
   const live = fixture === null && replay === null;
   const [tasks, setTasks] = useState<Task[]>(initial.tasks);
@@ -69,11 +69,11 @@ export function Ledger({ initial, fixture, record, demo }: { initial: LedgerInit
     try {
       const [runs, st, rs] = await Promise.all([
         api<{ current: RunCount }>('/api/runs'),
-        api<{ mode: 'live' | 'fake'; fo: { connected: boolean; simulated: boolean }; google: { connected: boolean } }>('/api/status'),
+        api<{ mode: 'live' | 'fake'; fo: { connected: boolean; simulated: boolean }; google: { connected: boolean; simulated?: boolean } }>('/api/status'),
         api<{ rules: Rule[] }>('/api/rules'),
       ]);
       setRunCount(runs.current);
-      setStatus({ mode: st.mode, foConnected: st.fo.connected, foSimulated: st.fo.simulated, googleConnected: st.google.connected });
+      setStatus({ mode: st.mode, foConnected: st.fo.connected, foSimulated: st.fo.simulated, googleConnected: st.google.connected, googleSimulated: st.google.simulated });
       setRules(rs.rules);
     } catch {
       /* keep what we have */
@@ -239,6 +239,19 @@ export function Ledger({ initial, fixture, record, demo }: { initial: LedgerInit
         <TopBar runCount={runCount} status={status} onRunsClick={() => openTrace(null)} />
       </div>
       <p className="px-4 sm:px-6 pt-3 pb-1 text-[14px] text-ink-muted">What Fo did, checked in your own calendar.</p>
+      {publicDemo && (
+        <p className="mx-4 sm:mx-6 mb-1 rounded-md bg-warning-container px-3 py-2 text-[13px] text-ink" role="note">
+          <strong>Public demo.</strong> A simulated Fo and a simulated calendar, shared by everyone who opens this page and reset on each deploy; every row says so. The video shows the real run.
+          {repoUrl ? (
+            <>
+              {' '}
+              To run Receipts with your own Wajo account and Google Calendar, <a className="underline" href={repoUrl}>clone the repository</a>.
+            </>
+          ) : (
+            ' To run Receipts with your own Wajo account and Google Calendar, clone the repository named in the write-up.'
+          )}
+        </p>
+      )}
       <RulesStrip rules={rules} onAdd={live ? addRule : undefined} readOnly={!live} />
       <Compose
         contacts={contacts}

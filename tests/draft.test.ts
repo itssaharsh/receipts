@@ -71,10 +71,10 @@ describe('drafting with a model (T13)', () => {
     expect(r.draft.postcondition).toEqual({ kind: 'calendar_event', titleContains: 'Dent', startLocal: '2026-10-22T15:00', windowMinutes: 30 }); // the stem, not the model's phrase
     expect(r.draft.summary).toMatch(/Fo will contact Northfield Dental; verified when an event containing “Dent” appears around Thu 22 Oct 15:00/); // our sentence, not the model's
 
-    const nobody = reconcile({ counterparty: 'Northfield Dental', category: 'cancellation', amountCents: 0, postcondition: { kind: 'none' } }, draftFromWords('Cancel my gym membership', ctx), 'Cancel my gym membership', ctx);
+    const nobody = reconcile({ counterparty: 'Northfield Dental', category: 'cancellation', amountCents: 0, postcondition: { kind: 'none' } }, draftFromWords('Cancel my gym membership', ctx), 'Cancel my gym membership');
     expect(nobody.counterparty).toBe(''); // a contact the sentence never mentions is still an invention
 
-    const invented = reconcile({ counterparty: 'Acme Corp', category: 'weird', amountCents: '4500', postcondition: { kind: 'calendar_event' } }, draftFromWords('Order flowers for $45 to Mum', ctx), 'Order flowers for $45 to Mum', ctx);
+    const invented = reconcile({ counterparty: 'Acme Corp', category: 'weird', amountCents: '4500', postcondition: { kind: 'calendar_event' } }, draftFromWords('Order flowers for $45 to Mum', ctx), 'Order flowers for $45 to Mum');
     expect(invented.counterparty).toBe('Mum'); // Acme Corp is not in the sentence
     expect(invented.category).toBe('purchase'); // not a category we know
     expect(invented.amountCents).toBe(4500); // a numeric string is accepted

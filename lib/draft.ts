@@ -261,7 +261,7 @@ function extractJson(s: string): unknown {
 }
 
 /** Make the model's answer fit the shape, falling back field by field to the words. */
-export function reconcile(raw: unknown, words: Draft, text: string, ctx: DraftContext): Draft {
+export function reconcile(raw: unknown, words: Draft, text: string): Draft {
   const o = (raw && typeof raw === 'object' ? raw : {}) as Record<string, unknown>;
   const lower = text.toLowerCase();
   let counterparty = typeof o.counterparty === 'string' ? o.counterparty.trim() : '';
@@ -313,7 +313,7 @@ export async function draftWithModel(text: string, ctx: DraftContext, opts: Mode
     const content = data.choices?.[0]?.message?.content;
     const textOut = typeof content === 'string' ? content : Array.isArray(content) ? content.map((c) => c.text ?? '').join('') : '';
     const words = draftFromWords(text, ctx);
-    return { draft: reconcile(extractJson(textOut), words, text, ctx), model: data.model ?? opts.model };
+    return { draft: reconcile(extractJson(textOut), words, text), model: data.model ?? opts.model };
   } finally {
     clearTimeout(timer);
   }

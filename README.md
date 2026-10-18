@@ -10,6 +10,8 @@ Built at the GSD (Get Sh\*t Done) Hackathon, Wajo × Claude, 17 to 19 October 20
 
 Demo video: one unedited take, about 35 seconds, attached to the X post (form item A). The run trace and the run count are in `SUBMISSION.md`.
 
+Try the ledger without an account: **https://receipts-lack-toes.vercel.app** runs a simulated Fo and a simulated calendar (every row says so, and the banner says what is shared). The real run is the video; the repository is https://github.com/itssaharsh/receipts.
+
 ## What you see
 
 - Every receipt shows Fo's claim beside what your calendar actually holds.

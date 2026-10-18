@@ -10,6 +10,7 @@ export const dynamic = 'force-dynamic';
  * GET /api/fo/connect?reset=1   -> forgets the cached client and tries again (after a token change)
  */
 export async function GET(req: NextRequest) {
+  if (process.env.PUBLIC_DEMO === '1') return NextResponse.json({ error: 'The public demo runs a simulated Fo and calendar; there is nothing to connect. Run Receipts locally to connect your own accounts.' }, { status: 409 });
   const db = getDb();
   if (req.nextUrl.searchParams.get('reset') === '1') await resetFo();
   const fo = getFo(db);

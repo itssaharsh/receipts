@@ -38,13 +38,19 @@ export function sameOrigin(req: Request): boolean {
   const origin = req.headers.get('origin');
   if (!origin) return true;
   const appUrl = (process.env.APP_URL ?? 'http://localhost:3100').replace(/\/$/, '');
+  const ownHost = req.headers.get('x-forwarded-host') ?? req.headers.get('host');
   try {
     const o = new URL(origin);
     const a = new URL(appUrl);
-    return o.host === a.host || o.hostname === 'localhost' || o.hostname === '127.0.0.1';
+    return o.host === a.host || (!!ownHost && o.host === ownHost) || o.hostname === 'localhost' || o.hostname === '127.0.0.1';
   } catch {
     return false;
   }
+}
+
+/** PUBLIC_DEMO=1: a hosted copy anyone may open, on the simulated Fo and calendar; nothing to connect, and it says so. */
+export function isPublicDemo(): boolean {
+  return process.env.PUBLIC_DEMO === '1';
 }
 
 export function forbidden() {

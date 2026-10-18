@@ -45,7 +45,9 @@ export default async function Page({ searchParams }: { searchParams: Promise<Sea
       foConnected: opts.mode === 'fake' ? true : provider.hasTokens(),
       foSimulated: opts.mode === 'fake',
       googleConnected: process.env.ORACLE_MODE === 'fake' ? true : !!google?.tokens,
+      googleSimulated: process.env.ORACLE_MODE === 'fake',
     },
   };
-  return <Ledger initial={initial} fixture={null} record={record} demo={one(sp.demo) === '1'} />;
+  const publicDemo = process.env.PUBLIC_DEMO === '1';
+  return <Ledger initial={initial} fixture={null} record={record} demo={publicDemo || one(sp.demo) === '1'} publicDemo={publicDemo} repoUrl={process.env.NEXT_PUBLIC_REPO_URL ?? null} />;
 }

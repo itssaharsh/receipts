@@ -12,6 +12,25 @@ const one = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v);
 
 export default async function ConnectPage({ searchParams }: { searchParams: Promise<Search> }) {
   const sp = await searchParams;
+  if (process.env.PUBLIC_DEMO === '1') {
+    return (
+      <main className="mx-auto w-full max-w-[720px] flex-1 px-4 sm:px-6 py-8">
+        <Link href="/" className="inline-flex items-center gap-2 text-ink">
+          <Mark />
+          <span className="wordmark">Receipts</span>
+        </Link>
+        <h1 className="mt-6 text-[22px] font-semibold">Nothing to connect here</h1>
+        <p className="mt-2 text-ink-muted">
+          This public copy runs a simulated Fo and a simulated calendar so anyone can try the ledger. To use Receipts with your own Wajo account and your own Google Calendar, run it on your computer: the README has the three commands, and both connections then stay on your machine.
+        </p>
+        <p className="mt-8 text-[14px]">
+          <Link href="/" className="underline">
+            Back to the ledger
+          </Link>
+        </p>
+      </main>
+    );
+  }
   const db = getDb();
   const fo = foOptionsFromEnv();
   const foProvider = new SqliteOAuthProvider(db, { redirectUrl: fo.redirectUrl });

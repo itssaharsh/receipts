@@ -10,6 +10,7 @@ export const dynamic = 'force-dynamic';
  * GET /api/google/connect?disconnect=1 -> forgets the stored tokens
  */
 export async function GET(req: NextRequest) {
+  if (process.env.PUBLIC_DEMO === '1') return NextResponse.json({ error: 'The public demo runs a simulated Fo and calendar; there is nothing to connect. Run Receipts locally to connect your own accounts.' }, { status: 409 });
   const db = getDb();
   const auth = googleFromEnv(db);
   if (!auth) {
