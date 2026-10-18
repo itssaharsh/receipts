@@ -78,14 +78,14 @@ export function createFakeFoServer(): McpServer {
     {
       description: 'Send the user\'s request to Fo (simulated).',
       inputSchema: {
-        request: z.string(),
-        context: z.string().optional(),
+        message: z.string(),
         conversationId: z.string().optional(),
         newConversation: z.boolean().optional(),
       },
       outputSchema: replyShape,
     },
-    async ({ request, conversationId, newConversation }) => {
+    async ({ message, conversationId, newConversation }) => {
+      const request = message;
       const ts = new Date().toISOString();
       const existing = conversationId && !newConversation ? convs.get(conversationId) : undefined;
       if (existing && existing.awaitingAnswer) {
@@ -108,7 +108,7 @@ export function createFakeFoServer(): McpServer {
 
   server.registerTool(
     'get_fo_reply',
-    { description: 'Wait for Fo\'s next step (simulated).', inputSchema: { conversationId: z.string() }, outputSchema: replyShape },
+    { description: 'Wait for Fo\'s next step (simulated).', inputSchema: { conversationId: z.string(), waitSeconds: z.number().optional() }, outputSchema: replyShape },
     async ({ conversationId }) => {
       const conv = convs.get(conversationId);
       if (!conv) return out({ status: 'failed', conversationId, progress: null, reply: 'Unknown conversation.' });

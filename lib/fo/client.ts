@@ -35,10 +35,15 @@ export interface AskArgs {
 const DEFAULT_URL = 'https://mcp.api.wajo.ai/fo';
 
 /** Drives Fo over MCP (live, from the user's own account) or the in-process fake, and logs every call. */
+/** get_fo_reply long-polls this long on the live server (its schema offers waitSeconds); the UI's own poll is every 3 s. */
+const REPLY_WAIT_SECONDS = 20;
+
 export class FoClient {
   readonly provider: SqliteOAuthProvider;
   private client: Client | null = null;
   private pendingTransport: StreamableHTTPClientTransport | null = null;
+  private askHasContext = false;
+  private replyHasWait = false;
   private tools: FoToolInfo[] | null = null;
   private askArg = 'request';
 
@@ -73,6 +78,11 @@ export class FoClient {
     const t = this.newTransport();
     try {
       await client.connect(t);
+      if (!this.provider.hasTokens()) {
+        // Wajo's server lets anyone initialize and list tools; the 401 comes at the first call, and the SDK then
+        // registers the client and prepares the authorization URL. Probe with the cheapest read before claiming a connection.
+        await client.callTool({ name: 'list_fo_conversations', arguments: {} });
+      }
       this.client = client;
       this.provider.clearPendingAuthorization();
       return { connected: true };
@@ -105,6 +115,9 @@ export class FoClient {
     const res = await this.need().listTools();
     this.tools = res.tools.map((t) => ({ name: t.name, description: t.description, inputSchema: t.inputSchema }));
     this.askArg = resolveAskArgName(this.tools);
+    const props = (name: string) => Object.keys(((this.tools?.find((t) => t.name === name)?.inputSchema ?? {}) as { properties?: Record<string, unknown> }).properties ?? {});
+    this.askHasContext = props('ask_fo').includes('context');
+    this.replyHasWait = props('get_fo_reply').includes('waitSeconds');
     writeEvent(this.db, {
       runId: trace.runId,
       taskId: null, // a connection-level event: it belongs to the run, not to one task
@@ -136,8 +149,10 @@ export class FoClient {
 
   async askFo(args: AskArgs, trace: TraceRef): Promise<FoReply> {
     await this.ensureTools(trace);
-    const toolArgs: Record<string, unknown> = { [this.askArg]: args.request };
-    if (args.context) toolArgs.context = args.context;
+    // the live schema has no context argument: the context travels inside the message, which is what a person would do
+    const text = args.context && !this.askHasContext ? `${args.request}\n\nContext: ${args.context}` : args.request;
+    const toolArgs: Record<string, unknown> = { [this.askArg]: text };
+    if (args.context && this.askHasContext) toolArgs.context = args.context;
     if (args.conversationId) toolArgs.conversationId = args.conversationId;
     if (args.newConversation) toolArgs.newConversation = true;
     try {
@@ -161,7 +176,8 @@ export class FoClient {
   async getFoReply(conversationId: string, trace: TraceRef): Promise<FoReply> {
     await this.ensureTools(trace);
     try {
-      const res = await this.call('get_fo_reply', { conversationId });
+      const replyArgs: Record<string, unknown> = this.replyHasWait ? { conversationId, waitSeconds: REPLY_WAIT_SECONDS } : { conversationId };
+      const res = await this.call('get_fo_reply', replyArgs);
       const reply = parseFoReply(res);
       if (!reply.conversationId) reply.conversationId = conversationId;
       writeEvent(this.db, {
@@ -169,7 +185,7 @@ export class FoClient {
         taskId: trace.taskId,
         kind: 'get_fo_reply',
         summary: `get_fo_reply -> ${reply.status}${reply.progress ? `: "${short(reply.progress, 80)}"` : ''}`,
-        payload: { args: { conversationId }, result: res, mode: this.opts.mode },
+        payload: { args: replyArgs, result: res, mode: this.opts.mode },
       });
       return reply;
     } catch (err) {
