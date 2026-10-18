@@ -1,0 +1,8 @@
+▲ Next.js 16.4.2
+- Local:         http://localhost:3102
+- Network:       http://10.255.255.254:3102
+✓ Ready in 542ms
+✓ Running next.config.ts took 174ms
+(node:537328) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+⚠ metadataBase property in metadata export is not set for resolving social open graph or twitter images, using "http://localhost:3102". See https://nextjs.org/docs/app/api-reference/functions/generate-metadata#metadatabase
