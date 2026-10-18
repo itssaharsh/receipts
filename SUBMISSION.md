@@ -34,7 +34,11 @@ Simulated runs during the build (simulated Fo and simulated calendar, not counte
 
 ## X post (under 280 characters)
 
-Wajo's Fo agent gets things done. Receipts proves it landed in your own calendar, and asks you only where your rules say so. Built at #GSDhackathon with @wajo_ai and Claude. Video below; trace and write-up in the repo.
+Fo says done. Receipts checks your own calendar before believing it.
+
+One sentence in. The fields and the check are drafted for you. Your rules decide what waits for a tap. When Fo books it, the receipt is verified from your own Google Calendar.
+
+One unedited take ↓ Built with @wajo_ai + Claude. https://github.com/itssaharsh/receipts
 
 ## Links
 
