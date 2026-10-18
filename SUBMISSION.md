@@ -36,7 +36,7 @@ Simulated runs during the build (simulated Fo and simulated calendar, not counte
 
 Fo says done. Receipts checks your own calendar before believing it.
 
-One sentence in, the check drafted for you, your rules decide what waits for a tap. When Fo books it, the receipt is verified from your own Google Calendar.
+One sentence in. Your rules decide what waits for a tap. When Fo books it, the receipt is verified from your own Google Calendar, not from Fo's reply.
 
 One unedited take ↓ @wajo_ai + Claude. https://github.com/itssaharsh/receipts
 
