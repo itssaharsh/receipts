@@ -570,11 +570,21 @@
         "npm test -- trace",
         "npm run build",
         "npm audit --omit=dev --audit-level=high",
-        "git ls-files | grep -c '^data/' | grep -q '^0$'"
+        "! git ls-files | grep -q '^data/'"
       ],
       "rollback": "git revert the T10 commit",
-      "status": "todo",
-      "notes": ""
+      "status": "done",
+      "notes": "grep -c exits 1 on zero matches, so the original pipeline failed under pipefail even though no data/ file is tracked; the check is now a negated grep -q",
+      "base": "97d2141",
+      "started_after": 100,
+      "evidence": [
+        "E0105",
+        "E0106",
+        "E0107",
+        "E0108",
+        "E0109",
+        "E0110"
+      ]
     },
     {
       "id": "T11",
