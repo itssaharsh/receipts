@@ -58,8 +58,8 @@ npm run build
 
 ## Architecture
 
-One Next.js app, Node's built-in SQLite plus an append-only JSONL trace, an MCP client to `https://mcp.api.wajo.ai/fo`, a read-only Google Calendar oracle, and a drafter behind one OpenAI-compatible call. See `ARCHITECTURE.md`. The judged path and the event's criteria are in `.prod-build/contract.md` §12.
+One Next.js app, Node's built-in SQLite plus an append-only JSONL trace, an MCP client to `https://mcp.api.wajo.ai/fo`, a read-only Google Calendar oracle, and a drafter behind one OpenAI-compatible call. See `ARCHITECTURE.md`.
 
 ## Tools used to build it
 
-Claude Code (the Claude agent) wrote the code, tests and documents with the builder; the plan, contract and evidence ledger are in `.prod-build/`. Fo was never asked by a page load: only the person's own send.
+Claude Code (the Claude agent) wrote the code, tests and documents with the builder (see `AGENTS.md`). Fo was never asked by a page load: only the person's own send.

@@ -6,7 +6,7 @@ export const metadata = {
   description: "Fo says done. Receipts checks your own calendar before believing it.",
 };
 
-/** The landing layer (UI-SPEC §9): product copy for a stranger. The README's first screen reuses it word for word. */
+/** The landing layer: product copy for a stranger. The README's first screen reuses it word for word. */
 export default function AboutPage() {
   return (
     <main className="mx-auto w-full max-w-[720px] flex-1 px-4 sm:px-6 py-8">

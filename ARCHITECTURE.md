@@ -7,7 +7,7 @@ Receipts is a single Next.js app, run locally for the judged take, that sits bet
 ## Components
 | Component | Responsibility | Tech | Why it exists (requirement) | When it fails |
 |---|---|---|---|---|
-| Web UI (`app/`) | the ledger: rules strip, compose, held card, receipt rows, trace drawer; `/connect`; `/about` | Next.js 16 App Router, React 19, Tailwind 4 tokens from UI-SPEC | M6, M7, M9 | the page still renders the seed row and fixtures (`?state=`) with no backend |
+| Web UI (`app/`) | the ledger: rules strip, compose, held card, receipt rows, trace drawer; `/connect`; `/about` | Next.js 16 App Router, React 19, Tailwind 4 design tokens | M6, M7, M9 | the page still renders the seed row and fixtures (`?state=`) with no backend |
 | API routes (`app/api/**`) | tasks, decisions, polling, checks, rules, trace, OAuth callbacks | Next route handlers, Node runtime | M1–M5, M7 | errors return the field or the provider's words; the UI keeps the input |
 | Rules evaluator (`lib/rules.ts`) | deterministic allow/hold with the rule id and a plain reason | TypeScript, zod | M1, M4 (Trust by design) | pure function; no failure mode beyond invalid input (400) |
 | Fo client (`lib/fo/client.ts`, `lib/fo/oauth.ts`) | OAuth 2.1 PKCE + dynamic registration, Streamable HTTP, typed wrappers for ask_fo, get_fo_reply, get_fo_conversation | `@modelcontextprotocol/sdk` 1.32 | M3 (the mandatory sponsor) | 401 → refresh → re-auth link; 429 or SSE drop → backoff with the row saying so; 15 min → "Fo is still working" |

@@ -85,3 +85,7 @@ qa/fold/
 qa/dev.log
 qa/prod.log
 .env.vercel*
+.prod-build/
+docs/memory/
+qa/
+UI-SPEC.md
