@@ -141,8 +141,16 @@
         "npm run typecheck"
       ],
       "rollback": "git revert the T02 commit; delete data/*.db",
-      "status": "todo",
-      "notes": ""
+      "status": "done",
+      "notes": "",
+      "base": "3c7db40",
+      "started_after": 8,
+      "evidence": [
+        "E0012",
+        "E0013",
+        "E0014",
+        "E0015"
+      ]
     },
     {
       "id": "T03",

@@ -1,0 +1,237 @@
+import path from 'node:path';
+import { Client } from '@modelcontextprotocol/sdk/client/index.js';
+import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/streamableHttp.js';
+import { UnauthorizedError } from '@modelcontextprotocol/sdk/client/auth.js';
+import type { Transport } from '@modelcontextprotocol/sdk/shared/transport.js';
+import type { CallToolResult } from '@modelcontextprotocol/sdk/types.js';
+import type { Db } from '../db';
+import { writeEvent } from '../trace';
+import { connectFakeFo } from './fake-server';
+import { SqliteOAuthProvider } from './oauth';
+import { parseFoConversation, parseFoReply, resolveAskArgName, type FoConversation, type FoReply, type FoToolInfo } from './types';
+
+export type FoMode = 'live' | 'fake';
+
+export interface FoClientOptions {
+  mode: FoMode;
+  url: string;
+  redirectUrl: string;
+  fetch?: typeof fetch;
+}
+
+export type ConnectResult = { connected: true } | { connected: false; authorizationUrl: string };
+
+export interface TraceRef {
+  runId: string;
+  taskId: string | null;
+}
+
+export interface AskArgs {
+  request: string;
+  context?: string;
+  conversationId?: string;
+  newConversation?: boolean;
+}
+
+const DEFAULT_URL = 'https://mcp.api.wajo.ai/fo';
+
+/** Drives Fo over MCP (live, from the user's own account) or the in-process fake, and logs every call. */
+export class FoClient {
+  readonly provider: SqliteOAuthProvider;
+  private client: Client | null = null;
+  private transport: Transport | null = null;
+  private pendingTransport: StreamableHTTPClientTransport | null = null;
+  private tools: FoToolInfo[] | null = null;
+  private askArg = 'request';
+
+  constructor(
+    private readonly db: Db,
+    readonly opts: FoClientOptions,
+  ) {
+    this.provider = new SqliteOAuthProvider(db, { redirectUrl: opts.redirectUrl });
+  }
+
+  get mode(): FoMode {
+    return this.opts.mode;
+  }
+
+  get isConnected(): boolean {
+    return this.client !== null;
+  }
+
+  private newTransport(): StreamableHTTPClientTransport {
+    return new StreamableHTTPClientTransport(new URL(this.opts.url), { authProvider: this.provider, fetch: this.opts.fetch });
+  }
+
+  async connect(): Promise<ConnectResult> {
+    if (this.client) return { connected: true };
+    const client = new Client({ name: 'receipts', version: '0.1.0' });
+    if (this.opts.mode === 'fake') {
+      const t = await connectFakeFo();
+      await client.connect(t);
+      this.client = client;
+      this.transport = t;
+      return { connected: true };
+    }
+    const t = this.newTransport();
+    try {
+      await client.connect(t);
+      this.client = client;
+      this.transport = t;
+      this.provider.clearPendingAuthorization();
+      return { connected: true };
+    } catch (err) {
+      if (err instanceof UnauthorizedError) {
+        const url = this.provider.pendingAuthorizationUrl();
+        if (url) {
+          this.pendingTransport = t;
+          return { connected: false, authorizationUrl: url };
+        }
+      }
+      throw err;
+    }
+  }
+
+  /** Complete the OAuth code exchange after the user comes back from Wajo. */
+  async finishAuth(code: string): Promise<void> {
+    const t = this.pendingTransport ?? this.newTransport();
+    await t.finishAuth(code);
+    this.pendingTransport = null;
+    this.provider.clearPendingAuthorization();
+  }
+
+  private need(): Client {
+    if (!this.client) throw new Error('Fo is not connected. Open /connect first.');
+    return this.client;
+  }
+
+  async listTools(trace: TraceRef): Promise<FoToolInfo[]> {
+    const res = await this.need().listTools();
+    this.tools = res.tools.map((t) => ({ name: t.name, description: t.description, inputSchema: t.inputSchema }));
+    this.askArg = resolveAskArgName(this.tools);
+    writeEvent(this.db, {
+      runId: trace.runId,
+      taskId: null, // a connection-level event: it belongs to the run, not to one task
+      kind: 'list_tools',
+      summary: `tools/list -> ${this.tools.map((t) => t.name).join(', ')} (ask_fo text argument: ${this.askArg})`,
+      payload: { tools: this.tools, mode: this.opts.mode },
+    });
+    return this.tools;
+  }
+
+  private async ensureTools(trace: TraceRef): Promise<void> {
+    if (!this.tools) await this.listTools(trace);
+  }
+
+  private async call(name: string, args: Record<string, unknown>): Promise<CallToolResult> {
+    const res = await this.need().callTool({ name, arguments: args });
+    return res as CallToolResult;
+  }
+
+  async askFo(args: AskArgs, trace: TraceRef): Promise<FoReply> {
+    await this.ensureTools(trace);
+    const toolArgs: Record<string, unknown> = { [this.askArg]: args.request };
+    if (args.context) toolArgs.context = args.context;
+    if (args.conversationId) toolArgs.conversationId = args.conversationId;
+    if (args.newConversation) toolArgs.newConversation = true;
+    try {
+      const res = await this.call('ask_fo', toolArgs);
+      const reply = parseFoReply(res);
+      if (!reply.conversationId && args.conversationId) reply.conversationId = args.conversationId;
+      writeEvent(this.db, {
+        runId: trace.runId,
+        taskId: trace.taskId,
+        kind: 'ask_fo',
+        summary: `ask_fo "${short(args.request)}" -> ${reply.status}${reply.conversationId ? ` (conversation ${short(reply.conversationId, 12)})` : ''}`,
+        payload: { args: toolArgs, result: res, mode: this.opts.mode },
+      });
+      return reply;
+    } catch (err) {
+      writeEvent(this.db, { runId: trace.runId, taskId: trace.taskId, kind: 'error', summary: `ask_fo failed: ${(err as Error).message}`, payload: { args: toolArgs } });
+      throw err;
+    }
+  }
+
+  async getFoReply(conversationId: string, trace: TraceRef): Promise<FoReply> {
+    await this.ensureTools(trace);
+    try {
+      const res = await this.call('get_fo_reply', { conversationId });
+      const reply = parseFoReply(res);
+      if (!reply.conversationId) reply.conversationId = conversationId;
+      writeEvent(this.db, {
+        runId: trace.runId,
+        taskId: trace.taskId,
+        kind: 'get_fo_reply',
+        summary: `get_fo_reply -> ${reply.status}${reply.progress ? `: "${short(reply.progress, 80)}"` : ''}`,
+        payload: { args: { conversationId }, result: res, mode: this.opts.mode },
+      });
+      return reply;
+    } catch (err) {
+      writeEvent(this.db, { runId: trace.runId, taskId: trace.taskId, kind: 'error', summary: `get_fo_reply failed: ${(err as Error).message}`, payload: { conversationId } });
+      throw err;
+    }
+  }
+
+  async getFoConversation(conversationId: string, trace: TraceRef): Promise<FoConversation> {
+    await this.ensureTools(trace);
+    const res = await this.call('get_fo_conversation', { conversationId });
+    const conv = parseFoConversation(res, conversationId);
+    writeEvent(this.db, {
+      runId: trace.runId,
+      taskId: trace.taskId,
+      kind: 'get_fo_conversation',
+      summary: `get_fo_conversation -> ${conv.messages.length} messages; claim: "${short(lastFoText(conv) ?? '', 80)}"`,
+      payload: { args: { conversationId }, result: res, mode: this.opts.mode },
+    });
+    return conv;
+  }
+
+  async close(): Promise<void> {
+    try {
+      await this.client?.close();
+    } catch {
+      /* already closed */
+    }
+    this.client = null;
+    this.transport = null;
+    this.tools = null;
+  }
+}
+
+export function lastFoText(conv: FoConversation): string | null {
+  for (let i = conv.messages.length - 1; i >= 0; i--) if (conv.messages[i].role !== 'user') return conv.messages[i].text;
+  return null;
+}
+
+function short(s: string, n = 60): string {
+  return s.length > n ? s.slice(0, n - 1) + '…' : s;
+}
+
+// ---- process-wide instance for the app -------------------------------------------
+export function foOptionsFromEnv(): FoClientOptions {
+  const mode: FoMode = process.env.FO_MODE === 'fake' ? 'fake' : 'live';
+  const appUrl = (process.env.APP_URL ?? 'http://localhost:3000').replace(/\/$/, '');
+  return { mode, url: process.env.FO_MCP_URL ?? DEFAULT_URL, redirectUrl: `${appUrl}/api/fo/callback` };
+}
+
+type GlobalWithFo = typeof globalThis & { __receiptsFo?: FoClient; __receiptsFoKey?: string };
+
+/** One Fo client per process (the fake keeps its conversations in memory, so it must be shared too). */
+export function getFo(db: Db): FoClient {
+  const g = globalThis as GlobalWithFo;
+  const opts = foOptionsFromEnv();
+  const key = JSON.stringify([opts.mode, opts.url, opts.redirectUrl, process.env.DB_PATH ?? path.join(process.cwd(), 'data', 'receipts.db')]);
+  if (!g.__receiptsFo || g.__receiptsFoKey !== key) {
+    g.__receiptsFo = new FoClient(db, opts);
+    g.__receiptsFoKey = key;
+  }
+  return g.__receiptsFo;
+}
+
+/** Drop the cached client so the next call reconnects (after a token change or a transport error). */
+export async function resetFo(): Promise<void> {
+  const g = globalThis as GlobalWithFo;
+  await g.__receiptsFo?.close();
+  g.__receiptsFo = undefined;
+  g.__receiptsFoKey = undefined;
+}
