@@ -29,6 +29,24 @@ export function pickScenario(text: string): FakeScenario {
 }
 
 export const FAKE_STEPS = ['Reading your request', 'Emailing Northfield Dental to confirm Thursday 3pm', 'Adding the appointment to your calendar'];
+
+/** The simulated Fo's steps and claim follow the errand's words, so a landlord email does not end "Booked ... Northfield Dental". */
+export function fakePlan(request: string): { steps: string[]; reply: string } {
+  const t = request.toLowerCase();
+  if (/dentist|dental|appointment|check-?up|\bbook\b/.test(t)) return { steps: FAKE_STEPS, reply: FAKE_COMPLETE_REPLY };
+  const name = /\b([A-Z][a-z]+ [A-Z][a-z]+)\b/.exec(request)?.[1] ?? (/\bmum\b/i.test(request) ? 'Mum' : 'them');
+  if (/\bcancel/.test(t)) {
+    return { steps: ['Reading your request', 'Finding the cancellation terms', 'Sending the cancellation notice'], reply: `Sent the cancellation notice from your account; confirmation requested in writing.` };
+  }
+  if (/email|e-mail|write|tell|message|let .{1,40} know/.test(t)) {
+    const gist = request.replace(/^.*?\bthat\b\s*/i, '').replace(/[.!]*$/, '');
+    return { steps: ['Reading your request', `Drafting the email to ${name}`, 'Sending it from your account'], reply: `Emailed ${name}: "${gist.charAt(0).toUpperCase() + gist.slice(1)}." Sent from your account; a copy is in your Sent folder.` };
+  }
+  if (/\bcall\b|phone|ring/.test(t)) {
+    return { steps: ['Reading your request', `Calling ${name}`, 'Taking notes from the call'], reply: `Called ${name} and relayed your message; they said they would follow up.` };
+  }
+  return { steps: ['Reading your request', 'Working through the steps', 'Wrapping up'], reply: `Done: ${request.replace(/[.!]*$/, '')}.` };
+}
 export const FAKE_COMPLETE_REPLY = 'Booked Thu 22 Oct 15:00 with Northfield Dental and emailed the clinic to confirm.';
 export const FAKE_CONFIRM_QUESTION = 'This order comes to $45.00 including delivery. Shall I go ahead?';
 export const FAKE_FAIL_REPLY = 'Fo could not reach Northfield Dental: the number rang out twice.';
@@ -82,7 +100,7 @@ export function createFakeFoServer(): McpServer {
       const id = 'conv-' + Math.random().toString(36).slice(2, 8);
       const conv: Conv = { id, request, scenario: pickScenario(request), step: 0, awaitingAnswer: false, answered: false, messages: [{ role: 'user', text: request, ts }] };
       convs.set(id, conv);
-      const progress = `Fo is on it: ${FAKE_STEPS[0]}`;
+      const progress = `Fo is on it: ${fakePlan(request).steps[0]}`;
       conv.messages.push({ role: 'fo', text: progress, ts });
       return out({ status: 'working', conversationId: id, progress, reply: null });
     },
@@ -117,9 +135,11 @@ export function createFakeFoServer(): McpServer {
           }
           if (conv.step >= 4) return say({ status: 'complete', conversationId, progress: null, reply: 'Ordered flowers for Mum: $45.00, delivery Thursday. Receipt emailed to you.' });
           return say({ status: 'working', conversationId, progress: 'Placing the order with the florist', reply: null });
-        default:
-          if (conv.step < FAKE_STEPS.length) return say({ status: 'working', conversationId, progress: `Fo is on it: ${FAKE_STEPS[conv.step]}`, reply: null });
-          return say({ status: 'complete', conversationId, progress: null, reply: FAKE_COMPLETE_REPLY });
+        default: {
+          const plan = fakePlan(conv.request);
+          if (conv.step < plan.steps.length) return say({ status: 'working', conversationId, progress: `Fo is on it: ${plan.steps[conv.step]}`, reply: null });
+          return say({ status: 'complete', conversationId, progress: null, reply: plan.reply });
+        }
       }
     },
   );

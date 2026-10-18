@@ -75,3 +75,14 @@ describe('FoClient against the fake Fo (AC-4, AC-5, M8)', () => {
     expect(reply.status).toBe('working');
   });
 });
+
+describe('the simulated Fo follows the errand', () => {
+  it('an email task ends with an emailed claim, a booking with the booking', async () => {
+    const { fakePlan, FAKE_COMPLETE_REPLY } = await import('@/lib/fo/fake-server');
+    expect(fakePlan('Book my dentist check-up: email Northfield Dental to confirm Thursday 3pm and put it on my calendar').reply).toBe(FAKE_COMPLETE_REPLY);
+    const email = fakePlan('Email my new landlord Jordan Lee that the rent will be late');
+    expect(email.steps[1]).toBe('Drafting the email to Jordan Lee');
+    expect(email.reply).toMatch(/^Emailed Jordan Lee: "The rent will be late\."/);
+    expect(fakePlan('Cancel my gym membership').reply).toMatch(/cancellation notice/);
+  });
+});
