@@ -25,7 +25,7 @@ export function runChipText(rc: RunCount): string {
 
 export function TopBar({ runCount, status, onRunsClick }: { runCount: RunCount; status: ConnStatus; onRunsClick?: () => void }) {
   return (
-    <header className="flex items-center gap-4 h-[52px] border-b border-line px-4 sm:px-6">
+    <header className="flex items-center gap-3 sm:gap-4 h-[52px] border-b border-line px-4 sm:px-6">
       <Link href="/" className="flex items-center gap-2 text-ink">
         <Mark />
         <span className="wordmark">Receipts</span>
@@ -34,8 +34,11 @@ export function TopBar({ runCount, status, onRunsClick }: { runCount: RunCount; 
         About
       </Link>
       <div className="ml-auto flex items-center gap-2 sm:gap-3">
-        <button type="button" onClick={onRunsClick} className="num rounded-md bg-surface-2 px-3 h-8 text-[13px] text-ink hidden sm:inline-flex items-center" title="Open the run count and the trace">
+        <button type="button" onClick={onRunsClick} className="num rounded-md bg-surface-2 px-3 h-8 text-[13px] text-ink hidden md:inline-flex items-center" title="Open the run count and the trace">
           {runChipText(runCount)}
+        </button>
+        <button type="button" onClick={onRunsClick} className="num rounded-md bg-surface-2 px-2.5 h-8 text-[13px] text-ink inline-flex md:hidden items-center" aria-label={runChipText(runCount)}>
+          {runCount.sent}/{runCount.verified}
         </button>
         <Chip label="Fo" connected={status.foConnected} simulated={status.foSimulated} />
         <Chip label="Calendar" connected={status.googleConnected} />
@@ -49,8 +52,8 @@ function Chip({ label, connected, simulated }: { label: string; connected: boole
   return (
     <Link href="/connect" className="inline-flex items-center gap-2 h-8 rounded-md border border-line px-2.5 text-[13px] text-ink" data-tooltip={title} title={title} aria-label={title}>
       <span className="disc" data-kind={connected ? (simulated ? 'awaiting' : 'verified') : 'allowed'} aria-hidden="true" />
-      {label}
-      {simulated && <span className="text-ink-muted">simulated</span>}
+      <span className="hidden sm:inline">{label}</span>
+      {simulated && <span className="text-ink-muted hidden sm:inline">simulated</span>}
     </Link>
   );
 }

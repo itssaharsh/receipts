@@ -231,7 +231,7 @@
     {
       "id": "T04",
       "title": "Ledger UI golden path with tokens and fonts",
-      "objective": "Tokens and fonts from UI-SPEC §14; the ledger page: top bar with run chip and connection chips, caption, rules strip, compose bar, held card, receipt rows with claim and proof halves and the perforated edge, status discs; polling every 3 s; the verified strip unfold; ?demo=1 seed; FO_MODE=fake labels",
+      "objective": "Tokens and fonts from UI-SPEC \u00a714; the ledger page: top bar with run chip and connection chips, caption, rules strip, compose bar, held card, receipt rows with claim and proof halves and the perforated edge, status discs; polling every 3 s; the verified strip unfold; ?demo=1 seed; FO_MODE=fake labels",
       "role": "frontend-engineer",
       "size": "L",
       "deps": [
@@ -348,11 +348,23 @@
         "T04"
       ],
       "writes": [
-        "app/components/TraceDrawer.tsx",
+        "app/api/replay/route.ts",
+        "app/components/Compose.tsx",
+        "app/components/Ledger.tsx",
+        "app/components/ReceiptRow.tsx",
         "app/components/RunChip.tsx",
-        "lib/fixtures.ts",
-        "app/page.tsx",
+        "app/components/TopBar.tsx",
+        "app/components/TraceDrawer.tsx",
         "app/globals.css",
+        "app/page.tsx",
+        "lib/fixtures.ts",
+        "lib/replay.ts",
+        "lib/store.ts",
+        "next.config.ts",
+        "package-lock.json",
+        "package.json",
+        "postcss.config.mjs",
+        "tests/replay.test.ts",
         "tests/states.test.ts"
       ],
       "produces": [],
@@ -374,18 +386,21 @@
       ],
       "verify": [
         "npm test -- states",
+        "npm test -- replay",
         "npm test -- trace-api",
         "npm run typecheck",
         "npm run build"
       ],
       "rollback": "git revert the T06 commit",
-      "status": "todo",
-      "notes": ""
+      "status": "doing",
+      "notes": "replay = a snapshot of a recorded real run (data/replay-run.json) shown read-only with its label; Tailwind moved from the Turbopack loader to PostCSS because the loader broke next/font in dev; devIndicators off for the take",
+      "base": "2fc4a35",
+      "started_after": 47
     },
     {
       "id": "T07",
       "title": "Landing layer: /about, README first screen, wordmark and favicon",
-      "objective": "/about with the UI-SPEC §9 landing block; README first screen (one sentence, a screenshot, the video and repo links filled or marked as pending in a way submit check accepts only when filled), the live-vs-simulated table, the disclosure sentence; the wordmark and icon.svg; OG image",
+      "objective": "/about with the UI-SPEC \u00a79 landing block; README first screen (one sentence, a screenshot, the video and repo links filled or marked as pending in a way submit check accepts only when filled), the live-vs-simulated table, the disclosure sentence; the wordmark and icon.svg; OG image",
       "role": "frontend-engineer",
       "size": "S",
       "deps": [

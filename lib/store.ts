@@ -50,7 +50,7 @@ export function bumpRuleUse(db: Db, id: string): void {
 type ContactRow = { id: string; name: string; email: string | null; phone: string | null };
 
 export function listContacts(db: Db): Contact[] {
-  return db.prepare('select * from contacts order by name').all() as ContactRow[];
+  return db.prepare('select * from contacts order by rowid').all() as ContactRow[];
 }
 
 export function addContact(db: Db, c: Omit<Contact, 'id'>): Contact {

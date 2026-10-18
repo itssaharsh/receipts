@@ -31,6 +31,7 @@ export function ReceiptRow({
   task,
   rules,
   isNew,
+  replayLabel,
   onTrace,
   onConfirm,
   onAnswer,
@@ -39,7 +40,8 @@ export function ReceiptRow({
   task: Task;
   rules: Rule[];
   isNew?: boolean;
-  onTrace?: (task: Task) => void;
+  replayLabel?: string | null;
+  onTrace?: (task: Task, from: HTMLElement | null) => void;
   onConfirm?: (task: Task) => Promise<void>;
   onAnswer?: (task: Task, answer: string) => Promise<void>;
   onRetry?: (task: Task) => Promise<void>;
@@ -125,8 +127,9 @@ export function ReceiptRow({
           <time dateTime={task.updatedAt}>{v.time}</time>
           {v.simulatedLabel && <span>{v.simulatedLabel}</span>}
           {task.runId === 'run-fixture' && <span>fixture</span>}
+          {replayLabel && <span className="text-right">{replayLabel}</span>}
           {onTrace && (
-            <button type="button" className="btn btn-text h-7 px-2" onClick={() => onTrace(task)}>
+            <button type="button" className="btn btn-text h-7 px-2" onClick={(e) => onTrace(task, e.currentTarget)}>
               Trace
             </button>
           )}

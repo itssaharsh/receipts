@@ -86,87 +86,93 @@ export function Compose({
     }
   }
 
+  const details = (
+    <div className="flex flex-wrap items-end gap-3">
+      <label className="flex flex-col gap-1">
+        <span className="label">Who it involves</span>
+        <select className="field field-sm" value={who} onChange={(e) => setWho(e.target.value)} required>
+          {contacts.map((c) => (
+            <option key={c.id} value={c.name}>
+              {c.name}
+            </option>
+          ))}
+          <option value="__other">Someone else…</option>
+        </select>
+      </label>
+      {who === '__other' && (
+        <label className="flex flex-col gap-1">
+          <span className="label">Their name</span>
+          <input className="field field-sm" value={other} onChange={(e) => setOther(e.target.value)} required placeholder="Jordan Lee" />
+        </label>
+      )}
+      <label className="flex flex-col gap-1 w-[110px]">
+        <span className="label">Amount, if any</span>
+        <input className="field field-sm num" inputMode="decimal" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="$0" />
+      </label>
+      <label className="flex flex-col gap-1">
+        <span className="label">Kind</span>
+        <select className="field field-sm" value={category} onChange={(e) => setCategory(e.target.value as TaskCategory)}>
+          <option value="booking">booking</option>
+          <option value="email">email</option>
+          <option value="call">call</option>
+          <option value="purchase">purchase</option>
+          <option value="cancellation">cancellation</option>
+          <option value="other">other</option>
+        </select>
+      </label>
+      <label className="flex flex-col gap-1">
+        <span className="label">Check</span>
+        <select className="field field-sm" value={check} onChange={(e) => setCheck(e.target.value as 'calendar' | 'none')}>
+          <option value="calendar">an event in my calendar</option>
+          <option value="none">no check</option>
+        </select>
+      </label>
+      {check === 'calendar' && (
+        <>
+          <label className="flex flex-col gap-1">
+            <span className="label">Title contains</span>
+            <input className="field field-sm w-[140px]" value={title} onChange={(e) => setTitle(e.target.value)} required />
+          </label>
+          <label className="flex flex-col gap-1">
+            <span className="label">Starts</span>
+            <input className="field field-sm" type="datetime-local" value={when} onChange={(e) => setWhen(e.target.value)} required />
+          </label>
+          <label className="flex flex-col gap-1">
+            <span className="label">Give or take, minutes</span>
+            <input className="field field-sm w-[80px] num" inputMode="numeric" value={windowMin} onChange={(e) => setWindowMin(e.target.value)} />
+          </label>
+        </>
+      )}
+      <button type="button" className="btn btn-text" onClick={fillDemo}>
+        Fill the demo task
+      </button>
+    </div>
+  );
+
   return (
-    <form onSubmit={submit} className="px-4 sm:px-6 py-4 border-b border-line flex flex-col gap-3" aria-label="Ask Fo">
-      <div className="flex flex-col sm:flex-row gap-3">
-        <label className="flex-1 flex flex-col gap-1">
+    <form onSubmit={submit} className="px-4 sm:px-6 py-3 border-b border-line flex flex-col gap-3" aria-label="Ask Fo">
+      <div className="flex gap-2 sm:gap-3 items-end">
+        <label className="flex-1 flex flex-col gap-1 min-w-0">
           <span className="label">Ask Fo to…</span>
           <input className="field w-full" value={text} onChange={(e) => setText(e.target.value)} placeholder="Ask Fo to…" required maxLength={2000} />
         </label>
-        <label className="flex flex-col gap-1 sm:w-[200px]">
-          <span className="label">Who it involves</span>
-          <select className="field" value={who} onChange={(e) => setWho(e.target.value)} required>
-            {contacts.map((c) => (
-              <option key={c.id} value={c.name}>
-                {c.name}
-              </option>
-            ))}
-            <option value="__other">Someone else…</option>
-          </select>
-        </label>
-        {who === '__other' && (
-          <label className="flex flex-col gap-1 sm:w-[200px]">
-            <span className="label">Their name</span>
-            <input className="field" value={other} onChange={(e) => setOther(e.target.value)} required placeholder="Jordan Lee" />
-          </label>
-        )}
-        <label className="flex flex-col gap-1 sm:w-[120px]">
-          <span className="label">Amount, if any</span>
-          <input className="field num" inputMode="decimal" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="$0" />
-        </label>
-        <div className="flex flex-col gap-1 justify-end">
-          <span className="label" aria-hidden="true">
-            &nbsp;
-          </span>
-          <button type="submit" className="btn btn-primary h-11" aria-disabled={busy}>
-            {busy ? 'Sending…' : 'Send to Fo'}
-          </button>
-        </div>
-      </div>
-      <div className="flex flex-wrap items-end gap-3">
-        <label className="flex flex-col gap-1">
-          <span className="label">Kind</span>
-          <select className="field field-sm" value={category} onChange={(e) => setCategory(e.target.value as TaskCategory)}>
-            <option value="booking">booking</option>
-            <option value="email">email</option>
-            <option value="call">call</option>
-            <option value="purchase">purchase</option>
-            <option value="cancellation">cancellation</option>
-            <option value="other">other</option>
-          </select>
-        </label>
-        <label className="flex flex-col gap-1">
-          <span className="label">Check</span>
-          <select className="field field-sm" value={check} onChange={(e) => setCheck(e.target.value as 'calendar' | 'none')}>
-            <option value="calendar">an event in my calendar</option>
-            <option value="none">no check</option>
-          </select>
-        </label>
-        {check === 'calendar' && (
-          <>
-            <label className="flex flex-col gap-1">
-              <span className="label">Title contains</span>
-              <input className="field field-sm w-[160px]" value={title} onChange={(e) => setTitle(e.target.value)} required />
-            </label>
-            <label className="flex flex-col gap-1">
-              <span className="label">Starts</span>
-              <input className="field field-sm" type="datetime-local" value={when} onChange={(e) => setWhen(e.target.value)} required />
-            </label>
-            <label className="flex flex-col gap-1">
-              <span className="label">Give or take, minutes</span>
-              <input className="field field-sm w-[90px] num" inputMode="numeric" value={windowMin} onChange={(e) => setWindowMin(e.target.value)} />
-            </label>
-          </>
-        )}
-        <button type="button" className="btn btn-text" onClick={fillDemo}>
-          Fill the demo task
+        <button type="submit" className="btn btn-primary h-11" aria-disabled={busy}>
+          {busy ? 'Sending…' : 'Send to Fo'}
         </button>
-        {error && (
-          <p className="text-danger text-sm basis-full" role="alert">
-            {error}
-          </p>
-        )}
       </div>
+      <div className="hidden sm:block">{details}</div>
+      <details className="sm:hidden">
+        <summary className="text-[13px] text-ink-muted cursor-pointer">
+          Details: {counterparty || 'who it involves'}, {amount ? `$${amount}` : 'no amount'}, {category}
+          {check === 'calendar' ? `, expected in your calendar` : ''}
+        </summary>
+        <div className="pt-3">{details}</div>
+      </details>
+      {error && (
+        <p className="text-danger text-sm" role="alert">
+          {error}
+        </p>
+      )}
     </form>
   );
 }

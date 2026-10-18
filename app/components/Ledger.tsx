@@ -1,14 +1,15 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
-import type { FixtureState } from '@/lib/fixtures';
-import type { Contact, Rule, RuleInput, RunCount, Task, TaskInput, UserDecision } from '@/lib/types';
+import { fixtureEvents, type FixtureState } from '@/lib/fixtures';
+import type { Contact, Rule, RuleInput, RunCount, Task, TaskInput, TraceEvent, UserDecision } from '@/lib/types';
 import { ACTIVE_STATUSES } from '@/lib/view';
 import { Compose } from './Compose';
 import { HeldCard } from './HeldCard';
 import { ReceiptRow } from './ReceiptRow';
 import { RulesStrip } from './RulesStrip';
 import { TopBar, type ConnStatus } from './TopBar';
+import { TraceDrawer } from './TraceDrawer';
 
 export interface LedgerInitial {
   tasks: Task[];
@@ -18,6 +19,8 @@ export interface LedgerInitial {
   status: ConnStatus;
 }
 
+type Replay = { runId: string; savedAt: string; tasks: Task[]; events: TraceEvent[] };
+
 async function api<T>(path: string, body?: unknown, method = body === undefined ? 'GET' : 'POST'): Promise<T> {
   const res = await fetch(path, { method, headers: body === undefined ? undefined : { 'content-type': 'application/json' }, body: body === undefined ? undefined : JSON.stringify(body) });
   const data = (await res.json().catch(() => ({}))) as T & { error?: string };
@@ -26,7 +29,8 @@ async function api<T>(path: string, body?: unknown, method = body === undefined 
 }
 
 export function Ledger({ initial, fixture, record, demo }: { initial: LedgerInitial; fixture: FixtureState | null; record: boolean; demo?: boolean }) {
-  const live = fixture === null;
+  const [replay, setReplay] = useState<Replay | null>(null);
+  const live = fixture === null && replay === null;
   const [tasks, setTasks] = useState<Task[]>(initial.tasks);
   const [rules, setRules] = useState<Rule[]>(initial.rules);
   const [contacts] = useState<Contact[]>(initial.contacts);
@@ -34,7 +38,9 @@ export function Ledger({ initial, fixture, record, demo }: { initial: LedgerInit
   const [status, setStatus] = useState<ConnStatus>(initial.status);
   const [newIds, setNewIds] = useState<Set<string>>(new Set());
   const [notice, setNotice] = useState<string | null>(null);
-  const foChipRef = useRef<HTMLDivElement>(null);
+  const [trace, setTrace] = useState<{ task: Task | null; events: TraceEvent[]; loading: boolean } | null>(null);
+  const lastTraceButton = useRef<HTMLElement | null>(null);
+  const topRef = useRef<HTMLDivElement>(null);
   const seeded = useRef(false);
 
   useEffect(() => {
@@ -50,6 +56,7 @@ export function Ledger({ initial, fixture, record, demo }: { initial: LedgerInit
       return next;
     });
     if (isNew) setNewIds((s) => new Set(s).add(t.id));
+    setTrace((tr) => (tr && tr.task?.id === t.id ? { ...tr, task: t } : tr));
   }, []);
 
   const refreshMeta = useCallback(async () => {
@@ -96,7 +103,24 @@ export function Ledger({ initial, fixture, record, demo }: { initial: LedgerInit
     return () => clearInterval(id);
   }, [live, refreshMeta]);
 
-  // ?demo=1 on an empty ledger: run the demo task once against the simulated Fo (refused in live mode).
+  // The open trace follows its task while it runs.
+  useEffect(() => {
+    if (!live || !trace?.task) return;
+    const id = trace.task.id;
+    let cancelled = false;
+    api<{ events: TraceEvent[] }>(`/api/trace/${id}`)
+      .then(({ events }) => {
+        if (!cancelled) setTrace((tr) => (tr && tr.task?.id === id ? { ...tr, events, loading: false } : tr));
+      })
+      .catch(() => {
+        if (!cancelled) setTrace((tr) => (tr && tr.task?.id === id ? { ...tr, loading: false } : tr));
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [live, trace?.task?.id, trace?.task?.status, trace?.task?.updatedAt, trace?.task]);
+
+  // ?demo=1 on an empty ledger: run the demo task once against the simulated Fo (refused with the live Fo).
   useEffect(() => {
     if (!live || !demo || seeded.current || tasks.length > 0) return;
     seeded.current = true;
@@ -108,15 +132,34 @@ export function Ledger({ initial, fixture, record, demo }: { initial: LedgerInit
       .catch((err) => setNotice((err as Error).message));
   }, [live, demo, tasks.length, upsert, refreshMeta]);
 
-  // Alt+Shift+R resets the demo ledger; Alt+Shift+P is the replay (T06).
+  // Alt+Shift+R resets the demo ledger; Alt+Shift+P replays the recorded real run.
   useEffect(() => {
-    if (!live) return;
     const onKey = async (e: KeyboardEvent) => {
-      if (e.altKey && e.shiftKey && e.code === 'KeyR') {
+      if (!e.altKey || !e.shiftKey) return;
+      if (e.code === 'KeyR' && fixture === null) {
         e.preventDefault();
         try {
           await api('/api/demo/reset', {});
-          window.location.reload();
+          window.location.href = window.location.pathname + window.location.search.replace(/[?&]demo=1/, '');
+        } catch (err) {
+          setNotice((err as Error).message);
+        }
+      }
+      if (e.code === 'KeyP' && fixture === null) {
+        e.preventDefault();
+        if (replay) {
+          setReplay(null);
+          setTasks(initial.tasks);
+          setRunCount(initial.runCount);
+          setNotice(null);
+          return;
+        }
+        try {
+          const snap = await api<Replay>('/api/replay');
+          setReplay(snap);
+          setTasks(snap.tasks);
+          setRunCount({ ...initial.runCount, runId: snap.runId });
+          setNotice(`Replay · run of ${new Date(snap.savedAt).toLocaleString('en-GB')} (recorded earlier; nothing is live)`);
         } catch (err) {
           setNotice((err as Error).message);
         }
@@ -124,7 +167,7 @@ export function Ledger({ initial, fixture, record, demo }: { initial: LedgerInit
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [live]);
+  }, [fixture, replay, initial.tasks, initial.runCount]);
 
   const blockedReason = !status.foConnected ? 'Connect Fo first' : null;
 
@@ -133,60 +176,73 @@ export function Ledger({ initial, fixture, record, demo }: { initial: LedgerInit
     upsert(task, true);
     refreshMeta();
   }
-
   async function decide(task: Task, decision: UserDecision) {
     const { task: t } = await api<{ task: Task }>(`/api/tasks/${task.id}/decide`, { decision });
     upsert(t);
     refreshMeta();
   }
-
   async function confirm(task: Task) {
     const { task: t } = await api<{ task: Task }>(`/api/tasks/${task.id}/confirm`, {});
     upsert(t);
     refreshMeta();
   }
-
   async function answer(task: Task, text: string) {
     const { task: t } = await api<{ task: Task }>(`/api/tasks/${task.id}/answer`, { answer: text });
     upsert(t);
   }
-
   async function retry(task: Task) {
     const { task: t } = await api<{ task: Task }>(`/api/tasks/${task.id}/poll`, {});
     upsert(t);
   }
-
   async function addRule(input: RuleInput) {
     const { rule } = await api<{ rule: Rule }>('/api/rules', input);
     setRules((rs) => [...rs, rule]);
   }
 
+  function openTrace(task: Task | null, from?: HTMLElement | null) {
+    lastTraceButton.current = from ?? (document.activeElement as HTMLElement | null);
+    if (!task) {
+      setTrace({ task: null, events: [], loading: false });
+      return;
+    }
+    if (fixture !== null) {
+      setTrace({ task, events: fixtureEvents(task), loading: false });
+      return;
+    }
+    if (replay) {
+      setTrace({ task, events: replay.events.filter((e) => e.taskId === task.id), loading: false });
+      return;
+    }
+    setTrace({ task, events: [], loading: true });
+  }
+  const closeTrace = useCallback(() => setTrace(null), []);
+
   const held = tasks.filter((t) => t.status === 'held');
   const rows = tasks.filter((t) => t.status !== 'held');
+  const exportHref = fixture !== null ? null : `/api/trace/export?run=${encodeURIComponent(runCount.runId)}`;
 
   return (
-    <main className="mx-auto w-full max-w-[1280px] flex-1">
-      <div ref={foChipRef}>
-        <TopBar runCount={runCount} status={status} />
+    <main className="mx-auto w-full max-w-[1280px] flex-1 relative">
+      <div ref={topRef}>
+        <TopBar runCount={runCount} status={status} onRunsClick={() => openTrace(null)} />
       </div>
       <p className="px-4 sm:px-6 pt-3 pb-1 text-[14px] text-ink-muted">What Fo did, checked in your own calendar and inbox.</p>
       <RulesStrip rules={rules} onAdd={live ? addRule : undefined} readOnly={!live} />
       <Compose
         contacts={contacts}
         onSend={send}
-        blockedReason={live ? blockedReason : null}
+        blockedReason={live ? blockedReason : fixture === 'disconnected' ? 'Connect Fo first' : replay ? 'Replay mode: press Alt+Shift+P to leave it' : null}
         onBlockedClick={() => {
-          const chip = foChipRef.current?.querySelector<HTMLAnchorElement>('a[href="/connect"]');
-          chip?.focus();
+          topRef.current?.querySelector<HTMLAnchorElement>('a[href="/connect"]')?.focus();
         }}
       />
       {notice && (
-        <p className="mx-4 sm:mx-6 mt-2 text-[13px] text-warning" role="status">
+        <p className={`text-[13px] text-warning ${record ? 'notice-docked' : 'mx-4 sm:mx-6 mt-2'}`} role="status">
           {notice}
         </p>
       )}
       {held.map((t) => (
-        <HeldCard key={t.id} task={t} rules={rules} onDecide={(d) => decide(t, d)} />
+        <HeldCard key={t.id} task={t} rules={rules} onDecide={live ? (d) => decide(t, d) : async () => setNotice('Decisions are off in this view.')} />
       ))}
       <section aria-label="Receipts">
         <h1 className="sr-only">Receipts</h1>
@@ -195,7 +251,17 @@ export function Ledger({ initial, fixture, record, demo }: { initial: LedgerInit
         ) : (
           <ol>
             {rows.map((t) => (
-              <ReceiptRow key={t.id} task={t} rules={rules} isNew={newIds.has(t.id)} onConfirm={live ? confirm : undefined} onAnswer={live ? answer : undefined} onRetry={live ? retry : undefined} />
+              <ReceiptRow
+                key={t.id}
+                task={t}
+                rules={rules}
+                isNew={newIds.has(t.id)}
+                replayLabel={replay ? `Replay · run of ${new Date(replay.savedAt).toLocaleString('en-GB', { dateStyle: 'medium', timeStyle: 'short' })}` : null}
+                onTrace={(task, el) => openTrace(task, el)}
+                onConfirm={live ? confirm : undefined}
+                onAnswer={live ? answer : undefined}
+                onRetry={live ? retry : undefined}
+              />
             ))}
           </ol>
         )}
@@ -203,6 +269,7 @@ export function Ledger({ initial, fixture, record, demo }: { initial: LedgerInit
       <div role="status" aria-live="polite" className="sr-only">
         {tasks.find((t) => t.status === 'verified') ? 'A receipt was verified from your calendar.' : ''}
       </div>
+      {trace && <TraceDrawer task={trace.task} events={trace.events} loading={trace.loading} runCount={runCount} exportHref={exportHref} onClose={closeTrace} returnFocusTo={lastTraceButton.current} />}
     </main>
   );
 }

@@ -1,14 +1,37 @@
 
 > receipts@0.1.0 dev
-> next dev
+> next dev -p 3100
 
-⨯ Failed to start server
-Error: listen EADDRINUSE: address already in use :::3000
-    at new Promise (<anonymous>) {
-  code: 'EADDRINUSE',
-  errno: -98,
-  syscall: 'listen',
-  address: '::',
-  port: 3000
-}
-[?25h
+▲ Next.js 16.4.2 (Turbopack)
+- Local:         http://localhost:3100
+- Network:       http://10.255.255.254:3100
+✓ Ready in 1005ms
+✓ Running next.config.ts took 83ms
+
+ GET /api/status 200 in 41s (next.js: 557ms, application-code: 40s)
+ GET /api/status 200 in 18ms (next.js: 4ms, application-code: 14ms)
+○ Compiling / ...
+ GET /?demo=1 200 in 1176ms (next.js: 410ms, application-code: 766ms)
+ GET /?demo=1 200 in 93ms (next.js: 3ms, application-code: 90ms)
+ POST /api/demo/seed 201 in 387ms (next.js: 172ms, application-code: 214ms)
+ GET /api/status 200 in 16ms (next.js: 6ms, application-code: 10ms)
+ GET /api/runs 200 in 124ms (next.js: 107ms, application-code: 17ms)
+ GET /api/rules 200 in 80ms (next.js: 69ms, application-code: 11ms)
+ GET /?state=verified 200 in 95ms (next.js: 5ms, application-code: 90ms)
+ GET /?state=held 200 in 95ms (next.js: 3ms, application-code: 93ms)
+ GET /?state=working 200 in 90ms (next.js: 3ms, application-code: 87ms)
+ GET /connect 200 in 289ms (next.js: 113ms, application-code: 175ms)
+ GET /?demo=1 200 in 113ms (next.js: 3ms, application-code: 110ms)
+ GET /?state=verified 200 in 84ms (next.js: 2.0ms, application-code: 82ms)
+ GET /?state=held 200 in 92ms (next.js: 1.8ms, application-code: 90ms)
+ GET /?state=working 200 in 76ms (next.js: 3ms, application-code: 73ms)
+ GET /connect 200 in 124ms (next.js: 2ms, application-code: 121ms)
+✓ Compiled in 267ms
+✓ Compiled in 77ms
+⚠ Found a change in next.config.ts. Restarting the server to apply the changes...
+▲ Next.js 16.4.2 (Turbopack)
+- Local:         http://localhost:3100
+- Network:       http://10.255.255.254:3100
+✓ Ready in 1252ms
+✓ Running next.config.ts took 151ms
+
