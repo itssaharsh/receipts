@@ -1,0 +1,118 @@
+# Implementation contract - Receipts
+mode: hackathon | channel: direct | created: 2026-10-18
+Upstream read: ../hackathon-idea/gsd-wajo-fo-mcp/ideas.json (idea "Receipts") and idea-package.md; ./UI-SPEC.md (prod-ui, Sprint scope). Planning files live outside the judged tree (see .gitignore).
+
+## 1. Intent
+- User and moment of use: a person who has just asked Fo (Wajo's action agent, over MCP from their own account) to book, email or buy something, on a laptop; at the moment they would be asked to approve it, and the moment Fo says it is done.
+- What they can do: write three standing rules once; ask Fo for an errand with its counterparty and amount; see tasks inside the rules go to Fo without asking and tasks outside them wait for one tap (approve once, approve and add a rule, decline); when Fo says done, see Receipts check their own Google Calendar and mark the receipt verified, or ask Fo again; open the trace of Fo tool calls and the run count; export the trace.
+- What changes after they use it (before -> after): before, every Fo action is a prompt to approve and Fo's "done" is a claim checked by hand in the calendar, if at all; after, the person acts on an outcome only when the receipt is verified from their own calendar, and approves only what their rules did not already settle.
+
+## 2. Scope
+MUST (core product, main workflow, judged/required):
+- M1 Rules: three standing rules in a file or table (allowed counterparties; max amount per task; categories that always hold), evaluated by plain code before dispatch; each decision recorded with the rule that made it.
+- M2 Compose: a task typed with its fields (text, counterparty, amount, category) and a postcondition (a calendar event whose title contains given words inside a time window); send.
+- M3 Dispatch to Fo over MCP from the user's own account: OAuth 2.1 with PKCE and dynamic client registration against https://mcp.api.wajo.ai/fo; ask_fo with the task; get_fo_reply polling with Fo's progress lines shown verbatim; Fo's confirmation question answered from the approval or forwarded to the user; the claim read from get_fo_conversation.
+- M4 Held queue: out-of-policy tasks wait with a card offering approve once / approve and add a rule / decline; the decision is recorded; decline = withheld, never sent to Fo.
+- M5 Receipts (the oracle): when Fo says done, read the user's own Google Calendar (read-only OAuth) for the postcondition; verified from the calendar, or unverified with one re-ask to Fo, then a manual tick shown as "confirmed by you", never as verified.
+- M6 Ledger UI: rules strip, compose bar, held card, receipt rows with the claim half and the proof half (the calendar strip), status words, the seed row labelled as an earlier run; `?state=` fixtures for every row state; `?record=1`.
+- M7 Trace and run count: every Fo tool call, check and decision logged to SQLite and a JSONL trace file with timestamps; a trace drawer per receipt; the run-count table (sent, verified, unverified, withheld, failed); export of one run's trace as a file (form item F) and the run count (form item G).
+- M8 Fake Fo for development and tests: an in-process MCP server with the same five tools and scripted replies, so the pipeline runs end to end before the user's OAuth; labelled "Simulated Fo" wherever it is on screen; never used in the recorded take.
+- M9 Submission surfaces: README first screen (the landing block), /about, SUBMISSION.md (write-up, build note, run count), the trace file, the X post text; `pb.py submit check` passes.
+SHOULD (materially improves the main workflow):
+- S1 Inbox checker (Gmail read-only) as a second oracle for email tasks.
+- S2 A per-task-type success rate shown on the rules strip or run chip.
+- S3 Reduced-motion variants.
+COULD (later; not in this build):
+- C1 A free-tier model that suggests the task's fields and postcondition from plain text (form fallback stays).
+- C2 A read-only ledger page deployed to Vercel (static snapshot of the ledger JSON).
+- C3 Weekly spend caps; a card-charge checker.
+WON'T now (hypothetical-future infrastructure, explicitly deferred):
+- Multi-user accounts, Postgres, notifications to Slack or WhatsApp, Fo voice calls, a rule builder UI beyond the form.
+
+## 3. Core journeys (smallest set that constitutes the product)
+J1 Verified receipt: user types the dentist task with counterparty "Northfield Dental", amount 0, category booking, postcondition "event containing Dental, Thu 23 Oct 15:00 ± 30 min" -> rules allow (R1 contacts only) -> row appears "allowed by R1", dispatched to Fo -> Fo's progress lines stream -> Fo says done -> Receipts queries the user's Google Calendar -> the proof half unfolds the calendar strip with the found event and the disc fills green: "verified from your calendar 09:41".
+J2 Held task: user types "Email my new landlord Jordan Lee that the rent will be late" -> R1 holds it (counterparty not in contacts) -> held card with the reason -> "Approve and add a rule" -> R4 recorded, task dispatched to Fo -> row "approved, and R4 added"; a second task "Order flowers for $45" -> R2 holds it (over $25) -> "Decline" -> row "withheld by R2, declined", proof half "never sent to Fo".
+J3 Trace: user clicks Trace on the verified row -> the drawer shows ask_fo, get_fo_reply x n, get_fo_conversation, check:calendar_event_exists with the event id, in order with timestamps; the run-count table; "Export trace" downloads the run's JSONL.
+
+## 4. Surfaces (only the necessary ones)
+S1 `/` ledger (rules strip, compose, held card, receipts, trace drawer) · S2 `/connect` (Fo OAuth, Google OAuth) · S3 `/about` (landing block) · API: `POST/GET /api/tasks`, `POST /api/tasks/[id]/decide`, `POST /api/tasks/[id]/poll`, `POST /api/tasks/[id]/check`, `POST /api/tasks/[id]/confirm`, `GET /api/trace/[id]`, `GET /api/trace/export?run=`, `GET/POST /api/rules`, `GET /api/runs`, `GET /api/fo/connect`, `GET /api/fo/callback`, `GET /api/google/connect`, `GET /api/google/callback`, `GET /api/status`.
+
+## 5. States per journey
+| Journey | initial | loading | success | error | empty | partial | retry | disabled | permission-denied | offline/degraded |
+|---|---|---|---|---|---|---|---|---|---|---|
+| J1 | compose bar + seed row | "Sending…" then the row "sent to Fo"; progress lines | row verified with the calendar strip | "Fo did not accept the task: <reason>" keeps the text; "Fo could not finish: <Fo's words>" | ledger: "No receipts yet. Ask Fo for something above." | claimed but "checking your calendar…" | unverified: one re-ask to Fo, then "confirm by hand" | Send stays enabled; on click "Connect Fo first" when Fo is not connected | Google token revoked: "no calendar connected; confirm by hand" | Fo unreachable: the row stays "sent", "Fo is not answering; still trying" after 3 failed polls, then "failed" after 15 min |
+| J2 | compose bar | "Evaluating…" (instant) | held card; after a decision the row | decision request fails: card stays with the reason | n/a (a held card exists only when something is held) | approve-and-add-rule saved but dispatch failed: row "approved, and R4 added; Fo did not accept" | retry the dispatch from the row | n/a | n/a | same as J1 for Fo |
+| J3 | Trace button per row | drawer skeleton | events and the table | "Couldn't load the trace" with retry | "Select a receipt to see its trace" / "No events yet" | n/a | reload | export disabled with reason when the run has no events | n/a | n/a: local file |
+
+## 6. Data
+| Entity | Key fields | Relationships | Owner | Persistence | Source of truth | PII/retention |
+|---|---|---|---|---|---|---|
+| rule | id, kind (allow_counterparties, max_amount, hold_categories), params JSON, created_at, use_count | decisions reference rule_id | the one local user | SQLite `data/receipts.db` | ours | none |
+| contact | id, name, email, phone | tasks reference contact by name | local user | SQLite | ours | the counterparty's email (local file only) |
+| task | id, run_id, text, counterparty, amount_cents, category, postcondition JSON, status, decision JSON (allowed/held/approved_once/approved_with_rule/declined, rule_id, reason), fo_conversation_id, fo_claim, created_at, updated_at | has many trace_events; one receipt state | local user | SQLite | ours (Fo's conversation is Fo's) | the task text may name people; local only |
+| receipt (fields on task) | check_kind, check_result JSON (event id, start, title), checked_at, verified_by (calendar, inbox, user, none), reask_count | — | local user | SQLite | the user's calendar is the source for verification | none |
+| trace_event | id, run_id, task_id, ts, kind (ask_fo, get_fo_reply, get_fo_conversation, decision, check, reask, manual, error), summary, payload JSON | task | local user | SQLite + append-only `data/trace.jsonl` | ours | Fo replies verbatim; local only |
+| run | run_id, started_at, task_ids, counts | tasks | local user | derived from tasks (no table) | ours | none |
+| oauth | provider (fo, google), client_information JSON, tokens JSON, code_verifier, state, discovery JSON | — | local user | SQLite (never committed; `data/` is gitignored) | the providers | access and refresh tokens: local only; revocable from Wajo and Google |
+
+## 7. Interfaces
+| Interface | Purpose | Contract file | Failure mode | Fallback |
+|---|---|---|---|---|
+| Fo MCP (Streamable HTTP, OAuth 2.1 PKCE + DCR) at https://mcp.api.wajo.ai/fo | ask_fo, get_fo_reply, get_fo_conversation, list_fo_conversations | `lib/fo/client.ts` (typed wrappers over the SDK); tool schemas read at runtime from tools/list and logged | 401 (token expired or revoked), 429, SSE drop, `working` for a long time, a confirmation question | refresh token, then re-auth link on /connect; back off and keep polling with the row saying so; after 15 min "Fo is still working; keeps running if you leave"; the confirmation is answered from the approval or forwarded to the user |
+| Fake Fo (in-process MCP server over InMemoryTransport) | tests and development before OAuth | `lib/fo/fake-server.ts`, same tool names | n/a | labelled "Simulated Fo" in the UI; `FO_MODE=fake` |
+| Google Calendar API v3 `events.list` (calendar.readonly) | the oracle | `lib/google.ts` | token expired, 403 insufficient scope, no match | refresh; re-auth link; unverified → re-ask Fo once → manual tick "confirmed by you" |
+| Google OAuth 2.0 (authorization code, offline access) | connect the user's calendar | `lib/google.ts` | consent screen in testing mode requires the user as a test user | /connect shows Google's own error text and the step to add the test user |
+| SQLite (better-sqlite3) | rules, tasks, trace, oauth | `lib/db.ts` with the schema in `lib/schema.sql` | locked file, corrupted file | WAL mode; the trace JSONL is the second copy of events |
+| Browser → API routes (same origin) | the UI | `lib/types.ts` (zod schemas shared by routes and UI) | validation errors | 400 with the field named; the UI keeps the text |
+
+No model runs in the entry. Fo is the external agent.
+
+## 8. Constraints
+- Security / privacy: one local user, no public deployment required; API routes bind to localhost in the take; secrets (OAuth client ids and tokens) in `data/` and `.env.local`, both gitignored, never in client bundles; the Google client secret is used only server-side; all write endpoints validate with zod; the trace export redacts tokens; rate limits n/a for a local single-user app (documented as the reason).
+- Budget: no Claude API credits; Fo on the plan the event's join code grants (Fo Mini excludes other clients per wajo.ai/support); Google Calendar API free.
+- Latency: Fo's `get_fo_reply` waits up to 40 s per call; tasks may take minutes; the UI polls every 3 s and shows the latest progress line; the check runs within 5 s of "done".
+- Platform: Next.js 16.4 App Router, Node 22 runtime for all API routes (better-sqlite3), run locally for the take; Vercel is a stretch (the SQLite ledger would be a static snapshot).
+- Deadline: X quote-repost with video by Mon 19 Oct 2026 17:15 UTC (10:15 AM PDT); freeze 11:31 UTC; the Discord form by Tue 20 Oct 17:15 UTC.
+- Sponsor rules (verbatim): "You must set up Wajo with our unique link." (Luma); "Plug into the Fo MCP server and API and ship something real." (Luma). Fo performs every real-world action; the entry gates and verifies.
+- Judging criteria (verbatim + weights, deck slide 4): "50% judges + 50% community"; "Gets real things done 25 · Trust by design 20 · Pushes the frontier 25 · Agent craft 20 · Real need 10 · Hardware bonus +5"; "Like Counts end in 24 hours." Form (deck slide 14): A) X link of your repost B) Email(s) of your team C) "Video / Demo: shows the key action live or in one unedited take." D) "Short write-up: who the project is for, what was built at the event, what existed before, and what is mocked or hard-coded." E) "Build note (a few lines): which tools the agent uses, what the team added on top, and one thing they tried that didn't work." F) "Run trace: the log of one real run of the demo task, showing the agent's tool calls." G) "Run count: how many times they ran the demo task and how many runs succeeded."
+- Performance: the first screen renders the seed row within 1 s locally; the disc fill and strip unfold run on transform/opacity and grid-rows only.
+
+## 9. Acceptance criteria
+AC-1: WHEN a task's counterparty is in contacts, its amount is within the cap and its category is not a hold category THE SYSTEM SHALL mark it allowed with the allowing rule id and dispatch it to Fo. Verify: `npm test -- rules` (RED first). Priority: must
+AC-2: IF a task's counterparty is not in contacts, or its amount exceeds the cap, or its category is a hold category THEN THE SYSTEM SHALL hold it with the rule id and a plain-sentence reason, and send nothing to Fo until a decision. Verify: `npm test -- rules`. Priority: must
+AC-3: WHEN the user chooses "approve and add a rule" THE SYSTEM SHALL record the decision, create the rule, and dispatch; WHEN "decline" THE SYSTEM SHALL record withheld and never call Fo. Verify: `npm test -- decide`. Priority: must
+AC-4: WHEN a task is dispatched THE SYSTEM SHALL call ask_fo once, poll get_fo_reply until complete or failed, store every progress line, and log each call as a trace event with a timestamp. Verify: `npm test -- runner` against the fake Fo. Priority: must
+AC-5: WHEN Fo's reply says it is waiting for the user's answer and the task was approved THE SYSTEM SHALL answer through ask_fo with the approval text and continue; otherwise it SHALL show the question on the row and wait. Verify: `npm test -- runner` (confirmation script). Priority: must
+AC-6: WHEN Fo reports complete THE SYSTEM SHALL run the postcondition check against the user's Google Calendar (events.list in the window, title contains) and mark verified with the event id, start and title; IF nothing matches THEN it SHALL mark unverified, re-ask Fo once, re-check, and then offer the manual tick. Verify: `npm test -- check` (fake calendar responses). Priority: must
+AC-7: WHEN the user ticks "confirm by hand" THE SYSTEM SHALL record verified_by=user and the UI SHALL show "confirmed by you <time>" in ink, never the green verified disc. Verify: `npm test -- check`; observe: the row at `?state=manual`. Priority: must
+AC-8: WHEN the page opens with no input THE SYSTEM SHALL show the three rules with use counts, the compose bar with "Send to Fo" and the labelled seed row with its verified calendar strip, at 1440x900 and 390x844, with no sign-in. Verify: `python3 <prod-ui>/scripts/foldcheck.py http://localhost:3000 --action "text=Send to Fo" --result "text=verified from your calendar" --promise calendar inbox rules`. Priority: must
+AC-9: WHEN `?state=<allowed|working|claimed|verified|unverified|manual|withheld|failed|held|empty|disconnected>` is set THE SYSTEM SHALL render that state from fixtures without Fo or Google. Verify: `npm test -- states` and the qa screenshot loop. Priority: must
+AC-10: WHEN the user opens Trace on a receipt THE SYSTEM SHALL list its events in order with timestamps and tool names, show the run-count table, and "Export trace" SHALL download the run's events as JSONL with any token redacted. Verify: `npm test -- trace`. Priority: must
+AC-11: WHEN Fo is not connected THE SYSTEM SHALL keep "Send to Fo" enabled and, on click, show "Connect Fo first" and focus the Fo chip; the seed row still renders. Verify: observe at `?state=disconnected`. Priority: must
+AC-12: WHEN the Fo access token is rejected (401) THE SYSTEM SHALL try the refresh token once and otherwise show the re-connect link on /connect with the row saying "Fo needs reconnecting". Verify: `npm test -- fo-auth` (fake 401). Priority: should
+AC-13: WHEN FO_MODE=fake THE SYSTEM SHALL label every row "Simulated Fo" and the run chip "simulated", and the recorded take SHALL run with FO_MODE=live. Verify: `npm test -- states`; observe in the take. Priority: must
+AC-14: WHEN SUBMISSION.md, the trace file and the README are written THE SYSTEM SHALL pass `python3 .prod-build/pb.py submit check` with the rules ledger confirmed. Verify: `python3 .prod-build/pb.py submit check --online`. Priority: must
+
+## 10. Assumptions
+A-1 [blocking, fenced]: the user's Wajo account is on a plan with MCP access (the event's join code) and completes the OAuth round trip from this client - validate by the first real connect on /connect. Until then, build and test against the fake Fo.
+A-2 [blocking, fenced]: Fo creates a Google Calendar event for a booking task on this plan, within minutes - validate by one timed real run; fallback oracle is the inbox checker (S1) or the manual tick.
+A-3 [reversible]: the user types the postcondition (title words, date, time) in the compose form; no model suggests it - validate by the outsider test; C1 adds suggestion later.
+A-4 [safe]: a Google Cloud OAuth client in testing mode with the user's account as a test user is enough for calendar.readonly - validate by the first Google connect.
+A-5 [safe]: localhost redirect URIs are accepted by Wajo's dynamic client registration (Claude Code and Claude Desktop use the same shape) - validate by the first connect; fallback: a Vercel-hosted callback.
+A-6 [reversible]: the counterparty "Northfield Dental" in the demo is a second mailbox the builder controls; disclosed on the form and the row - no validation needed.
+A-7 [safe]: the form's "Run count" is reported as attempted/succeeded over the live runs only; fake runs are excluded and said so.
+
+## 11. Demo script (hackathon)
+One unedited take, about 2:20, FO_MODE=live, `?record=1`, second window: Google Calendar.
+0:00 the populated ledger (seed row labelled "earlier run"), the caption, the three rules · 0:08 the rules read aloud · 0:15 type the dentist task with Northfield Dental, 0, booking, postcondition "Dental, Thu 23 Oct 15:00"; Send to Fo; the row shows "allowed by R1" and the postcondition · 0:30 Fo's progress lines stream; switch to the Google Calendar window and back · 0:50–1:30 "Fo says done"; "checking your calendar…"; the appointment appears in Google Calendar; the strip unfolds; the disc fills green (the key action) · 1:30 type the landlord email; held by R1; "Approve and add a rule"; it dispatches with R4 logged · 1:50 type "Order flowers for $45"; held by R2; Decline; "withheld" · 2:00 Trace: the tool calls, the check with the event id, the run-count table; Export · 2:15 one limit aloud: the clinic address is my second mailbox; the oracle is my own calendar; Receipts runs no model; Fo is the agent.
+
+## 12. Event and judged path
+(This file is committed with the repository, so a judge may read it. Quote the event's own public pages, with the date each was read. Nothing about individual judges and no guesses about what they like.)
+- Window: start 2026-10-17T17:30:00Z (Sat 17 Oct 10:30 PDT, "10:30 team formation + hacking starts", deck slide 10, read 2026-10-18); freeze 2026-10-19T11:31:12Z (set by pb.py, the last 12%); end 2026-10-19T17:15:00Z ("Due on Monday, Oct 19 at 10:15 AM Pacific Time", deck slide 14). Rule on earlier work: none forbids it; the form asks for disclosure: "Short write-up: who the project is for, what was built at the event, what existed before, and what is mocked or hard-coded." Nothing of this entry existed before the start; the research package and this plan were written on 18 Oct inside the window.
+- How an entry is judged: first the X quote-repost (video and short write-up: "On X: quote-repost Wajo founder, Shivani's 10 AM PT post with your demo video and a short write-up."), then the Google form on Discord (items A–G). Minutes per project: not published. Whether anyone runs the build: not published; no live link is asked for. Community half: "Like Counts end in 24 hours."
+- Criteria (deck slide 4, read 2026-10-18): "Gets real things done 25 · Trust by design 20 · Pushes the frontier 25 · Agent craft 20 · Real need 10 · Hardware bonus +5"; "50% judges + 50% community". No judges' form is public; the labels are the only wording.
+- Criteria coverage: Gets real things done → 0:50–1:30, Fo books the appointment and it appears in the user's own Google Calendar; the receipt verifies from there (met). Trust by design → 1:30–2:00, R1 holds the landlord email (a counterparty outside the contacts, which Fo would not hold itself), approve and add a rule, dispatch; R2 holds the $45 order, decline, withheld; 0:15 R1 lets the clinic task go without asking (met). Pushes the frontier → 0:15 the postcondition written before dispatch, 1:20 the receipt verified from the user's own calendar rather than from Fo's reply, 2:00 the success rate per task type (met by inference; the line is undefined). Agent craft → 2:00–2:20 the trace with Fo's tool calls, the confirmation answered and the check, and the run-count table (met). Real need → 0:00–0:10 the rules and the one-line user; the write-up links the evidence (partial: the problem is a hypothesis for consumer action-agent users). Hardware bonus → open (no device). Community → the first frame is the receipt flipping; the post's first line is the judge card (partial; reach untested).
+- Capability coverage: the prizes name one capability, Fo MCP → 0:15 ask_fo dispatch, 0:30 get_fo_reply polling with progress verbatim, 0:50 get_fo_conversation claim read, 1:30 Fo's confirmation answered through ask_fo from the approval; all on the entry's own screen with Fo named on each row (Wajo publishes no client UI for MCP, so the entry's UI is the surface).
+- Main result: native state: the receipt row flips from claimed to verified as the dentist appointment Fo booked appears in the user's own Google Calendar beside it; material: the user's own Google Calendar (the clinic address is a second mailbox the builder controls, disclosed). The one staged failure: "Order flowers for $45" held by R2 and declined, recorded as withheld and never sent to Fo; and, if a check finds nothing, the row reads unverified and re-asks Fo once, then hands to the user.
+- Promise coverage: "Receipts: proof that it landed in your own calendar and inbox" → the first screen is the ledger of receipts, each verified or withheld row naming the check behind it (the seed row's calendar strip is visible with no input). "asks you only where your rules say so" → the three rules with use counts at the top; the held card shows what waited. AC-8 checks the default view.
+- Before the clock: nothing. The idea research, this contract and the plan were written on 18 Oct 2026, after the start. README sentence: "Everything here, including the planning notes kept outside this repository, was written during the event; the research package that chose the idea was finished on 18 October, after hacking opened."
