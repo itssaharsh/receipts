@@ -476,10 +476,13 @@
         "observe: backup take recorded and its path written to .prod-build/state.md"
       ],
       "rollback": "none; a file",
-      "status": "doing",
+      "status": "done",
       "notes": "The judged take must be FO_MODE=live; this one is the fallback only",
       "base": "277c411",
-      "started_after": 65
+      "started_after": 65,
+      "evidence": [
+        "E0085"
+      ]
     },
     {
       "id": "T09",
@@ -520,8 +523,10 @@
         "observe: foldcheck json at qa/fold/foldcheck.json passes"
       ],
       "rollback": "git revert the fix commits individually",
-      "status": "todo",
-      "notes": ""
+      "status": "doing",
+      "notes": "",
+      "base": "72d8787",
+      "started_after": 74
     },
     {
       "id": "T10",
