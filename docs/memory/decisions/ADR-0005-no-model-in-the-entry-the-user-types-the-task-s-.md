@@ -7,12 +7,12 @@ scope: project
 components: compose, rules
 triggers: 
 evidence: app/components/Compose.tsx, lib/rules.ts
-verified_at: 2026-10-18@53c1eb8
+verified_at: 2026-10-18@54f4c56
 relates: 
 supersedes: 
 helpful: 0
 harmful: 0
-cite_hash: 5badb639e9446d99
+cite_hash: 44b1084053733de4
 created: 2026-10-18
 source: unknown
 ---

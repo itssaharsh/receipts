@@ -7,12 +7,12 @@ scope: project
 components: app, store, trace
 triggers: 
 evidence: ARCHITECTURE.md#Key-decisions, lib/db.ts, lib/trace.ts
-verified_at: 2026-10-18@53c1eb8
+verified_at: 2026-10-18@54f4c56
 relates: 
 supersedes: 
 helpful: 0
 harmful: 0
-cite_hash: de87061295e31f84
+cite_hash: 73a9b2f48d448e07
 created: 2026-10-18
 source: unknown
 ---

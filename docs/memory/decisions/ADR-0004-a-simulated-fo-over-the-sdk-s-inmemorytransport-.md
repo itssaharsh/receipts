@@ -7,12 +7,12 @@ scope: project
 components: fo, tests
 triggers: 
 evidence: lib/fo/fake-server.ts, tests/fo-client.test.ts, lib/view.ts
-verified_at: 2026-10-18@53c1eb8
+verified_at: 2026-10-18@54f4c56
 relates: 
 supersedes: 
 helpful: 0
 harmful: 0
-cite_hash: 9e370b1aa3d2ca10
+cite_hash: 6fc22f8c7382a4ba
 created: 2026-10-18
 source: unknown
 ---

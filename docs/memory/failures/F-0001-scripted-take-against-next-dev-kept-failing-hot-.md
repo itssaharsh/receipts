@@ -6,13 +6,13 @@ status: active
 scope: project
 components: qa
 triggers: playwright, next dev, navigation, click timeout
-evidence: commit:72d8787, .prod-build/logs/E0069.log
-verified_at: 2026-10-18@53c1eb8
+evidence: commit:72d8787, .prod-build/logs/E0069.log, qa/take.py, ARCHITECTURE.md#Key-decisions
+verified_at: 2026-10-18@54f4c56
 relates: 
 supersedes: 
 helpful: 0
 harmful: 0
-cite_hash: e3b0c44298fc1c14
+cite_hash: 5c231f7497c3cb68
 created: 2026-10-18
 source: unknown
 ---

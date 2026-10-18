@@ -7,12 +7,12 @@ scope: project
 components: check, oracle, google
 triggers: 
 evidence: lib/check.ts, lib/google.ts, lib/runner.ts
-verified_at: 2026-10-18@53c1eb8
+verified_at: 2026-10-18@54f4c56
 relates: 
 supersedes: 
 helpful: 0
 harmful: 0
-cite_hash: f74984a07cafb758
+cite_hash: 6f44e5c4105a5320
 created: 2026-10-18
 source: unknown
 ---

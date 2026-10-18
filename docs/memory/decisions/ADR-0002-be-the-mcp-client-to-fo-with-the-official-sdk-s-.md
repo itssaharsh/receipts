@@ -7,12 +7,12 @@ scope: project
 components: fo
 triggers: 
 evidence: lib/fo/oauth.ts, lib/fo/client.ts, tests/fo-auth.test.ts
-verified_at: 2026-10-18@53c1eb8
+verified_at: 2026-10-18@54f4c56
 relates: 
 supersedes: 
 helpful: 0
 harmful: 0
-cite_hash: dc002de9d46a6d69
+cite_hash: 78a44bd994182b20
 created: 2026-10-18
 source: unknown
 ---
