@@ -46,7 +46,9 @@ describe('API routes: tasks, trace, export, runs (AC-10)', () => {
     expect(task.decision.outcome).toBe('allowed');
 
     let current = task;
-    for (let i = 0; i < 12 && ['dispatched', 'working', 'claimed', 'checking'].includes(current.status); i++) {
+    // the app dispatches in the background, so the first polls may find the row still 'allowed' while ask_fo is in flight
+    for (let i = 0; i < 40 && ['allowed', 'dispatched', 'working', 'claimed', 'checking'].includes(current.status); i++) {
+      await new Promise((r) => setTimeout(r, 25));
       const r = await pollTask(post(`/api/tasks/${task.id}/poll`, {}), ctx(task.id));
       expect(r.status).toBe(200);
       current = (await r.json()).task;

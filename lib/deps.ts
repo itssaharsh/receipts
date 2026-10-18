@@ -13,7 +13,8 @@ registerGoogleOracle();
 export function getDeps(): RunnerDeps {
   const db = getDb();
   ensureDefaults(db);
-  return { db, fo: getFo(db), oracle: getOracle(db) };
+  return {
+    asyncDispatch: true, db, fo: getFo(db), oracle: getOracle(db) };
 }
 
 export function badRequest(error: string, issues?: unknown) {

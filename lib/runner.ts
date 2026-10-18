@@ -9,7 +9,7 @@ import type { Oracle } from './oracle';
 import { evaluate, formatMoney } from './rules';
 import { bumpRuleUse, createRule, currentRunId, getRule, insertTask, listContacts, listRules, mustGetTask, updateTask } from './store';
 import { writeEvent } from './trace';
-import { TaskInputSchema, type RuleInput, type Task, type TaskInput, type UserDecision } from './types';
+import { TaskInputSchema, type Contact, type RuleInput, type Task, type TaskInput, type UserDecision } from './types';
 
 export { runCount } from './store';
 
@@ -17,6 +17,8 @@ export interface RunnerDeps {
   db: Db;
   fo: FoClient;
   oracle: Oracle;
+  /** true in the app: ask_fo can block for a minute, so createTask and decide return at once and the UI polls */
+  asyncDispatch?: boolean;
   /** How many times to ask Fo again when the oracle finds nothing. Default 1. */
   maxReasks?: number;
 }
@@ -29,6 +31,32 @@ export class FoNotConnectedError extends Error {
 
 const APPROVAL_ANSWER = 'Yes, go ahead.';
 const ANSWERED_MARK = 'Receipts answered: ';
+const MAX_AUTO_ANSWERS = 2;
+
+/** Fo's live server ends a turn that asks something with status "complete"; the words decide. */
+export function isQuestion(text: string | null | undefined): boolean {
+  if (!text) return false;
+  const t = text.trim();
+  if (t.length > 600) return false;
+  return t.endsWith('?') || /\b(which|what|could you|can you|do you want|shall i|should i|would you like|please (confirm|share|tell))\b[^.]*\?/i.test(t);
+}
+
+/**
+ * What Receipts may answer on the person's behalf: the counterparty's details from their own contacts, or a plain
+ * confirmation once the task was approved or allowed by a rule. Anything else is the person's to answer.
+ */
+export function autoAnswer(question: string, task: Task, contacts: Contact[]): { answer: string; basis: 'contacts' | 'approval' } | null {
+  const c = contactFor(contacts, task.counterparty);
+  if (c && (c.email || c.phone) && /\b(email|e-mail|contact|phone|number|address|which\b|who\b|details)/i.test(question)) {
+    const details = [c.email ? `email ${c.email}` : null, c.phone ? `phone ${c.phone}` : null].filter(Boolean).join(', ');
+    return { answer: `Use ${c.name}: ${details}. Go ahead.`, basis: 'contacts' };
+  }
+  const approved = task.userDecision === 'approve_once' || task.userDecision === 'approve_with_rule' || task.allowedByRuleId !== null;
+  if (approved && /\b(shall i|should i|go ahead|proceed|confirm|ok to|okay to|want me to|is that (ok|okay|right|correct)|sound good|book it|send it)\b/i.test(question)) {
+    return { answer: APPROVAL_ANSWER, basis: 'approval' };
+  }
+  return null;
+}
 
 const trace = (t: Task) => ({ runId: t.runId, taskId: t.id });
 
@@ -98,6 +126,10 @@ export async function createTask(deps: RunnerDeps, raw: TaskInput, meta: { draft
   });
   if (decision.outcome === 'allowed') {
     if (decision.ruleId) bumpRuleUse(db, decision.ruleId);
+    if (deps.asyncDispatch) {
+      void dispatch(deps, task).catch(() => {});
+      return task;
+    }
     return dispatch(deps, task);
   }
   return task;
@@ -130,6 +162,10 @@ export async function decide(deps: RunnerDeps, taskId: string, userDecision: Use
     writeEvent(db, { ...trace(task), kind: 'user_decision', summary: 'approved once', payload: { userDecision } });
   }
   const t = updateTask(db, taskId, { status: 'allowed', userDecision, allowedByRuleId, error: null });
+  if (deps.asyncDispatch) {
+    void dispatch(deps, t).catch(() => {});
+    return t;
+  }
   return dispatch(deps, t);
 }
 
@@ -144,8 +180,15 @@ function defaultRuleFor(deps: RunnerDeps, task: Task): RuleInput {
   return { kind: 'allow_counterparties', label: `${task.counterparty} allowed`, params: { names: [task.counterparty] } };
 }
 
-function contextFor(task: Task): string {
-  const parts = [`Counterparty: ${task.counterparty}.`, `Category: ${task.category}.`];
+export function contactFor(contacts: Contact[], counterparty: string): Contact | null {
+  const want = counterparty.trim().toLowerCase();
+  return contacts.find((c) => c.name.trim().toLowerCase() === want) ?? null;
+}
+
+function contextFor(task: Task, contacts: Contact[]): string {
+  const c = contactFor(contacts, task.counterparty);
+  const details = c && (c.email || c.phone) ? ` (${[c.email ? `email ${c.email}` : null, c.phone ? `phone ${c.phone}` : null].filter(Boolean).join(', ')}; use these details and do not search for others)` : '';
+  const parts = [`Counterparty: ${task.counterparty}${details}.`, `Category: ${task.category}.`];
   if (task.amountCents > 0) parts.push(`Amount: ${formatMoney(task.amountCents)}.`);
   if (task.postcondition.kind === 'calendar_event') {
     parts.push(`Expected result: an event containing "${task.postcondition.titleContains}" on ${fmtWall(task.postcondition.startISO)} in my calendar.`);
@@ -169,7 +212,7 @@ export async function dispatch(deps: RunnerDeps, task: Task): Promise<Task> {
       if (!conn.connected) throw new FoNotConnectedError(conn.authorizationUrl);
       let reply: FoReply;
       try {
-        reply = await fo.askFo({ request: fresh.text, context: contextFor(fresh), newConversation: true }, trace(fresh));
+        reply = await fo.askFo({ request: fresh.text, context: contextFor(fresh, listContacts(db)), newConversation: true }, trace(fresh));
       } catch (err) {
         return updateTask(db, fresh.id, { status: 'failed', error: `Fo did not accept the task: ${(err as Error).message}` });
       }
@@ -233,23 +276,8 @@ async function applyReply(deps: RunnerDeps, task: Task, reply: FoReply): Promise
     case 'failed':
       return updateTask(db, task.id, { ...convPatch, status: 'failed', foProgress: progress, error: reply.text ?? reply.progress ?? 'Fo could not finish.' });
 
-    case 'waiting_for_user': {
-      const question = reply.progress ?? reply.text ?? 'Fo has a question for you.';
-      const approved = task.userDecision === 'approve_once' || task.userDecision === 'approve_with_rule' || task.allowedByRuleId !== null;
-      const alreadyAnswered = task.foProgress.some((p) => p.startsWith(ANSWERED_MARK));
-      if (approved && !alreadyAnswered && task.foConversationId) {
-        writeEvent(db, {
-          ...trace(task),
-          kind: 'note',
-          summary: `confirmation answered from the approval: Fo asked "${question}"; Receipts answered "${APPROVAL_ANSWER}" (${task.userDecision ?? `allowed by ${task.allowedByRuleId}`})`,
-          payload: { question, answer: APPROVAL_ANSWER },
-        });
-        const withQ = updateTask(db, task.id, { ...convPatch, foProgress: [...progress, `Fo asked: ${question}`, `${ANSWERED_MARK}${APPROVAL_ANSWER}`] });
-        const ans = await fo.askFo({ request: APPROVAL_ANSWER, conversationId: withQ.foConversationId ?? undefined }, trace(task));
-        return applyReply(deps, withQ, ans);
-      }
-      return updateTask(db, task.id, { ...convPatch, status: 'awaiting_user', foQuestion: question, foProgress: progress });
-    }
+    case 'waiting_for_user':
+      return handleQuestion(deps, task, reply.progress ?? reply.text ?? 'Fo has a question for you.', progress, convPatch);
 
     case 'complete': {
       let claim = reply.text ?? reply.progress ?? null;
@@ -258,15 +286,39 @@ async function applyReply(deps: RunnerDeps, task: Task, reply: FoReply): Promise
         try {
           const conv = await fo.getFoConversation(convId, trace(task));
           const last = lastFoText(conv);
-          if (!claim && last) claim = last;
+          if (last) claim = last; // Fo's own last words are the claim, not the short reply
         } catch {
           /* the claim from the reply is enough */
         }
       }
+      // the live server says "complete" when Fo has asked something and stopped; the words decide
+      if (isQuestion(claim)) return handleQuestion(deps, task, claim!, progress, convPatch);
       const t = updateTask(db, task.id, { ...convPatch, status: 'claimed', foClaim: claim, foProgress: progress, foQuestion: null });
       return checkInner(deps, t.id); // already under this task's lock
     }
   }
+}
+
+/** Fo asked something. Receipts answers from the person's contacts or their approval, twice at most; otherwise the person answers. */
+async function handleQuestion(deps: RunnerDeps, task: Task, question: string, progress: string[], convPatch: Partial<Task>): Promise<Task> {
+  const { db, fo } = deps;
+  const answered = task.foProgress.filter((p) => p.startsWith(ANSWERED_MARK)).length;
+  const auto = answered < MAX_AUTO_ANSWERS && task.foConversationId ? autoAnswer(question, task, listContacts(db)) : null;
+  if (auto) {
+    writeEvent(db, {
+      ...trace(task),
+      kind: 'note',
+      summary:
+        auto.basis === 'contacts'
+          ? `answered from your contacts: Fo asked "${question}"; Receipts answered "${auto.answer}"`
+          : `confirmation answered from the approval: Fo asked "${question}"; Receipts answered "${auto.answer}" (${task.userDecision ?? `allowed by ${task.allowedByRuleId}`})`,
+      payload: { question, answer: auto.answer, basis: auto.basis },
+    });
+    const withQ = updateTask(db, task.id, { ...convPatch, status: 'working', foProgress: [...progress, `Fo asked: ${question}`, `${ANSWERED_MARK}${auto.answer}`], foQuestion: null });
+    const ans = await fo.askFo({ request: auto.answer, conversationId: withQ.foConversationId ?? undefined }, trace(task));
+    return applyReply(deps, withQ, ans);
+  }
+  return updateTask(db, task.id, { ...convPatch, status: 'awaiting_user', foQuestion: question, foProgress: progress });
 }
 
 /** The user answers a question Receipts could not answer from the approval. */

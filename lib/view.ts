@@ -22,7 +22,7 @@ export interface RowView {
 export const STATUS_WORDS: Record<Task['status'], string> = {
   held: 'Held',
   withheld: 'Withheld',
-  allowed: 'Allowed',
+  allowed: 'Sending',
   dispatched: 'Sent',
   working: 'Working',
   awaiting_user: 'Question',
@@ -34,8 +34,8 @@ export const STATUS_WORDS: Record<Task['status'], string> = {
   failed: 'Failed',
 };
 
-/** Statuses the UI polls. 'allowed' is transient (createTask dispatches at once) and 'failed' waits for the person. */
-export const ACTIVE_STATUSES: ReadonlySet<Task['status']> = new Set(['dispatched', 'working', 'claimed', 'checking']);
+/** Statuses the UI polls: 'allowed' while the app sends in the background; 'failed' waits for the person. */
+export const ACTIVE_STATUSES: ReadonlySet<Task['status']> = new Set(['allowed', 'dispatched', 'working', 'claimed', 'checking']);
 
 export function hhmm(iso: string): string {
   const d = new Date(iso);
@@ -68,6 +68,7 @@ export function describeTask(t: Task, rules: Rule[]): RowView {
   if (t.status === 'failed' && !t.dispatchedAt) claimLine = t.error ?? 'Fo did not accept the task';
   else if (t.status === 'failed') claimLine = `Fo could not finish: ${t.error ?? 'no reason given'}`;
   else if ((t.status === 'working' || t.status === 'dispatched') && t.error) claimLine = t.error;
+  else if (t.status === 'allowed' && !t.error) claimLine = 'sending to Fo…';
   else if (t.status === 'claimed' || t.status === 'checking' || t.status === 'verified' || t.status === 'unverified' || t.status === 'confirmed_by_user') {
     claimLine = t.foClaim ? `Fo says done: "${t.foClaim}"` : 'Fo says done';
   } else if (t.status === 'awaiting_user') claimLine = t.foQuestion ? `Fo asks: "${t.foQuestion}"` : 'Fo has a question';

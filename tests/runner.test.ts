@@ -123,3 +123,18 @@ describe('task runner (AC-1, AC-4, AC-5, AC-6, AC-7)', () => {
     expect(rc.simulated).toBe(true);
   });
 });
+
+describe('questions in Fo\'s words (live server shape)', () => {
+  it('a reply that asks something is a question whatever its status, and Receipts answers only what it may', async () => {
+    const { isQuestion, autoAnswer } = await import('@/lib/runner');
+    expect(isQuestion('Which Northfield Dental is your dentist, or can you share its email address?')).toBe(true);
+    expect(isQuestion('Booked Thu 22 Oct 15:00 with Northfield Dental and emailed the clinic to confirm.')).toBe(false);
+    const base = { counterparty: 'Northfield Dental', userDecision: null, allowedByRuleId: 'R1' } as unknown as import('@/lib/types').Task;
+    const contacts = [{ id: 'c1', name: 'Northfield Dental', email: 'clinic@example.com', phone: null }];
+    expect(autoAnswer('Which Northfield Dental is your dentist, or can you share its email address?', base, contacts)).toEqual({ answer: 'Use Northfield Dental: email clinic@example.com. Go ahead.', basis: 'contacts' });
+    expect(autoAnswer('This comes to $45. Shall I go ahead?', base, contacts)).toEqual({ answer: 'Yes, go ahead.', basis: 'approval' });
+    expect(autoAnswer('What time on Friday works for you?', base, contacts)).toBeNull(); // the person answers
+    const held = { ...base, allowedByRuleId: null } as unknown as import('@/lib/types').Task;
+    expect(autoAnswer('Shall I go ahead?', held, [])).toBeNull(); // nothing approved, nothing answered
+  });
+});
