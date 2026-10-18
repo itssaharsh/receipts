@@ -23,8 +23,12 @@ type Replay = { runId: string; savedAt: string; tasks: Task[]; events: TraceEven
 
 async function api<T>(path: string, body?: unknown, method = body === undefined ? 'GET' : 'POST'): Promise<T> {
   const res = await fetch(path, { method, headers: body === undefined ? undefined : { 'content-type': 'application/json' }, body: body === undefined ? undefined : JSON.stringify(body) });
-  const data = (await res.json().catch(() => ({}))) as T & { error?: string };
-  if (!res.ok) throw new Error(data.error ?? `${method} ${path} failed (${res.status})`);
+  const data = (await res.json().catch(() => ({}))) as T & { error?: string; issues?: { path?: (string | number)[]; message: string }[] };
+  if (!res.ok) {
+    const first = data.issues?.[0];
+    const field = first?.path?.length ? String(first.path[first.path.length - 1]) : null;
+    throw new Error(first ? `${field ? field + ': ' : ''}${first.message}` : (data.error ?? `${method} ${path} failed (${res.status})`));
+  }
   return data;
 }
 
@@ -42,6 +46,7 @@ export function Ledger({ initial, fixture, record, demo }: { initial: LedgerInit
   const lastTraceButton = useRef<HTMLElement | null>(null);
   const topRef = useRef<HTMLDivElement>(null);
   const seeded = useRef(false);
+  const inFlight = useRef<Set<string>>(new Set());
 
   useEffect(() => {
     document.documentElement.dataset.record = record ? '1' : '';
@@ -80,14 +85,21 @@ export function Ledger({ initial, fixture, record, demo }: { initial: LedgerInit
     if (!live) return;
     let stopped = false;
     const tick = async () => {
-      const active = tasks.filter((t) => ACTIVE_STATUSES.has(t.status));
+      // one poll in flight per task: a live get_fo_reply can take up to 40 s
+      // and after a failed poll ("Fo is not answering"), wait 30 s before the next try
+      const active = tasks.filter(
+        (t) => ACTIVE_STATUSES.has(t.status) && !inFlight.current.has(t.id) && !(t.error && Date.now() - Date.parse(t.updatedAt) < 30_000),
+      );
       for (const t of active) {
-        try {
-          const { task } = await api<{ task: Task }>(`/api/tasks/${t.id}/poll`, {});
-          if (!stopped) upsert(task);
-        } catch (err) {
-          if (!stopped) setNotice((err as Error).message);
-        }
+        inFlight.current.add(t.id);
+        api<{ task: Task }>(`/api/tasks/${t.id}/poll`, {})
+          .then(({ task }) => {
+            if (!stopped) upsert(task);
+          })
+          .catch((err) => {
+            if (!stopped) setNotice((err as Error).message);
+          })
+          .finally(() => inFlight.current.delete(t.id));
       }
     };
     const id = setInterval(tick, 3000);
@@ -191,7 +203,7 @@ export function Ledger({ initial, fixture, record, demo }: { initial: LedgerInit
     upsert(t);
   }
   async function retry(task: Task) {
-    const { task: t } = await api<{ task: Task }>(`/api/tasks/${task.id}/poll`, {});
+    const { task: t } = await api<{ task: Task }>(`/api/tasks/${task.id}/retry`, {});
     upsert(t);
   }
   async function addRule(input: RuleInput) {
@@ -219,14 +231,14 @@ export function Ledger({ initial, fixture, record, demo }: { initial: LedgerInit
 
   const held = tasks.filter((t) => t.status === 'held');
   const rows = tasks.filter((t) => t.status !== 'held');
-  const exportHref = fixture !== null ? null : `/api/trace/export?run=${encodeURIComponent(runCount.runId)}`;
+  const exportHref = fixture !== null || !tasks.some((t) => t.runId === runCount.runId) ? null : `/api/trace/export?run=${encodeURIComponent(runCount.runId)}`;
 
   return (
     <main className="mx-auto w-full max-w-[1280px] flex-1 relative">
       <div ref={topRef}>
         <TopBar runCount={runCount} status={status} onRunsClick={() => openTrace(null)} />
       </div>
-      <p className="px-4 sm:px-6 pt-3 pb-1 text-[14px] text-ink-muted">What Fo did, checked in your own calendar and inbox.</p>
+      <p className="px-4 sm:px-6 pt-3 pb-1 text-[14px] text-ink-muted">What Fo did, checked in your own calendar.</p>
       <RulesStrip rules={rules} onAdd={live ? addRule : undefined} readOnly={!live} />
       <Compose
         contacts={contacts}
@@ -256,7 +268,13 @@ export function Ledger({ initial, fixture, record, demo }: { initial: LedgerInit
                 task={t}
                 rules={rules}
                 isNew={newIds.has(t.id)}
-                replayLabel={replay ? `Replay · run of ${new Date(replay.savedAt).toLocaleString('en-GB', { dateStyle: 'medium', timeStyle: 'short' })}` : null}
+                replayLabel={
+                  replay
+                    ? `Replay · run of ${new Date(replay.savedAt).toLocaleString('en-GB', { dateStyle: 'medium', timeStyle: 'short' })}`
+                    : live && t.runId !== runCount.runId
+                      ? `earlier run, ${new Date(t.createdAt).toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}`
+                      : null
+                }
                 onTrace={(task, el) => openTrace(task, el)}
                 onConfirm={live ? confirm : undefined}
                 onAnswer={live ? answer : undefined}

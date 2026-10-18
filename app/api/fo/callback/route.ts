@@ -16,7 +16,7 @@ export async function GET(req: NextRequest) {
   if (!code) return back('fo=error&message=' + encodeURIComponent('Wajo sent no authorization code.'));
   const fo = getFo(db);
   const expected = fo.provider.expectedState();
-  if (expected && state !== expected) return back('fo=error&message=' + encodeURIComponent('The state parameter did not match; start the connection again.'));
+  if (!expected || state !== expected) return back('fo=error&message=' + encodeURIComponent('The state parameter did not match; start the connection again from this page.'));
   try {
     await fo.finishAuth(code);
     writeEvent(db, { runId: 'system', taskId: null, kind: 'note', summary: 'Fo connected over OAuth (tokens stored locally)', payload: {} });

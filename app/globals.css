@@ -183,6 +183,7 @@ p {
   flex: none;
   box-sizing: border-box;
 }
+.disc[data-kind="connected"],
 .disc[data-kind="verified"] {
   background: var(--accent);
   border-color: var(--accent);

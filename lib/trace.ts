@@ -27,6 +27,16 @@ export function redact(value: unknown): unknown {
   return value;
 }
 
+/** Token-like words inside free text (a summary quoting a reply) are replaced too. */
+export function redactText(s: string): string {
+  return s
+    .replace(/Bearer\s+[\w.~+/=-]+/gi, 'Bearer [redacted]')
+    .replace(/eyJ[\w-]+\.[\w-]+\.[\w-]+/g, '[redacted]')
+    .replace(/ya29\.[\w.-]+/g, '[redacted]')
+    .replace(/1\/\/0[\w-]+/g, '[redacted]')
+    .replace(/GOCSPX-[\w-]+/g, '[redacted]');
+}
+
 export function tracePath(): string {
   return process.env.TRACE_PATH ?? path.join(process.cwd(), 'data', 'trace.jsonl');
 }
@@ -39,7 +49,7 @@ export function writeEvent(db: Db, input: TraceEventInput): TraceEvent {
     taskId: input.taskId,
     ts: new Date().toISOString(),
     kind: input.kind,
-    summary: input.summary,
+    summary: redactText(input.summary),
     payload: redact(input.payload ?? {}),
   };
   db.prepare(

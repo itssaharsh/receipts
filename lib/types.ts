@@ -15,11 +15,24 @@ export const RuleSchema = z.object({
 });
 export type Rule = z.infer<typeof RuleSchema>;
 
-export const RuleInputSchema = z.object({
-  kind: RuleKindSchema,
-  label: z.string().min(1).max(80),
-  params: z.record(z.string(), z.unknown()).default({}),
-});
+export const RuleInputSchema = z
+  .object({
+    kind: RuleKindSchema,
+    label: z.string().trim().min(1).max(80),
+    params: z.record(z.string(), z.unknown()).default({}),
+  })
+  .superRefine((r, ctx) => {
+    const p = r.params as Record<string, unknown>;
+    if (r.kind === 'max_amount' && !(typeof p.maxCents === 'number' && Number.isInteger(p.maxCents) && p.maxCents >= 0)) {
+      ctx.addIssue({ code: 'custom', path: ['params', 'maxCents'], message: 'a cap in cents (a whole number, 0 or more) is required' });
+    }
+    if (r.kind === 'hold_categories' && !(Array.isArray(p.categories) && p.categories.length > 0 && p.categories.every((c) => typeof c === 'string' && c.trim()))) {
+      ctx.addIssue({ code: 'custom', path: ['params', 'categories'], message: 'at least one category name is required' });
+    }
+    if (r.kind === 'allow_counterparties' && p.names !== undefined && !(Array.isArray(p.names) && p.names.every((n) => typeof n === 'string' && n.trim()))) {
+      ctx.addIssue({ code: 'custom', path: ['params', 'names'], message: 'names must be a list of non-empty strings (leave it out to mean the contacts list)' });
+    }
+  });
 export type RuleInput = z.infer<typeof RuleInputSchema>;
 
 // ---- contacts -------------------------------------------------------------
@@ -38,8 +51,11 @@ export type TaskCategory = z.infer<typeof TaskCategorySchema>;
 export const PostconditionSchema = z.discriminatedUnion('kind', [
   z.object({
     kind: z.literal('calendar_event'),
-    titleContains: z.string().min(1).max(120),
-    startISO: z.string().min(10),
+    titleContains: z.string().trim().min(1).max(120),
+    startISO: z
+      .string()
+      .min(10)
+      .refine((s) => !Number.isNaN(Date.parse(s)), { message: 'the start must be a date and time' }),
     windowMinutes: z.number().int().positive().max(24 * 60).default(30),
   }),
   z.object({ kind: z.literal('none') }),
@@ -47,8 +63,8 @@ export const PostconditionSchema = z.discriminatedUnion('kind', [
 export type Postcondition = z.infer<typeof PostconditionSchema>;
 
 export const TaskInputSchema = z.object({
-  text: z.string().min(1).max(2000),
-  counterparty: z.string().min(1).max(200),
+  text: z.string().trim().min(1).max(2000),
+  counterparty: z.string().trim().min(1).max(200),
   amountCents: z.number().int().nonnegative().max(100_000_00).default(0),
   category: TaskCategorySchema,
   postcondition: PostconditionSchema,

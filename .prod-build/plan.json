@@ -494,11 +494,16 @@
         "T07"
       ],
       "writes": [
-        "qa/**",
+        ".env.example",
         ".prod-build/reports/**",
-        "tests/**",
+        "README.md",
+        "SUBMISSION.md",
         "app/**",
-        "lib/**"
+        "app/api/tasks/[id]/retry/route.ts",
+        "lib/**",
+        "package.json",
+        "qa/**",
+        "tests/**"
       ],
       "produces": [],
       "consumes": [],
@@ -523,10 +528,16 @@
         "observe: foldcheck json at qa/fold/foldcheck.json passes"
       ],
       "rollback": "git revert the fix commits individually",
-      "status": "doing",
-      "notes": "",
+      "status": "done",
+      "notes": "review-T09.md: 4 blocking (poll in-flight guard + server task lock; no automatic ask_fo retry; one documented port 3100; stale demo constant) and the demo-path minors fixed in the same pass",
       "base": "72d8787",
-      "started_after": 74
+      "started_after": 74,
+      "evidence": [
+        "E0086",
+        "E0098",
+        "E0099",
+        "E0100"
+      ]
     },
     {
       "id": "T10",

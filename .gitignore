@@ -83,3 +83,4 @@ submission/takes/
 qa/shots/
 qa/fold/
 qa/dev.log
+qa/prod.log

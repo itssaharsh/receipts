@@ -51,7 +51,7 @@ function Chip({ label, connected, simulated }: { label: string; connected: boole
   const title = simulated ? 'Simulated Fo for development; the recorded run uses the live Fo' : connected ? `${label} connected` : `${label} not connected: open /connect`;
   return (
     <Link href="/connect" className="inline-flex items-center gap-2 h-8 rounded-md border border-line px-2.5 text-[13px] text-ink" data-tooltip={title} title={title} aria-label={title}>
-      <span className="disc" data-kind={connected ? (simulated ? 'awaiting' : 'verified') : 'allowed'} aria-hidden="true" />
+      <span className="disc" data-kind={connected ? (simulated ? 'awaiting' : 'connected') : 'allowed'} aria-hidden="true" />
       <span className="hidden sm:inline">{label}</span>
       {simulated && <span className="text-ink-muted hidden sm:inline">simulated</span>}
     </Link>

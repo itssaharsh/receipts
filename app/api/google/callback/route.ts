@@ -17,7 +17,7 @@ export async function GET(req: NextRequest) {
   const state = req.nextUrl.searchParams.get('state');
   if (!code) return back('google=error&message=' + encodeURIComponent('Google sent no authorization code.'));
   const expected = auth.expectedState();
-  if (expected && state !== expected) return back('google=error&message=' + encodeURIComponent('The state parameter did not match; start again.'));
+  if (!expected || state !== expected) return back('google=error&message=' + encodeURIComponent('The state parameter did not match; start again from this page.'));
   try {
     await auth.exchangeCode(code);
     writeEvent(db, { runId: 'system', taskId: null, kind: 'note', summary: 'Google Calendar connected (read-only; tokens stored locally)', payload: {} });

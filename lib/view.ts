@@ -34,7 +34,8 @@ export const STATUS_WORDS: Record<Task['status'], string> = {
   failed: 'Failed',
 };
 
-export const ACTIVE_STATUSES: ReadonlySet<Task['status']> = new Set(['allowed', 'dispatched', 'working', 'claimed', 'checking']);
+/** Statuses the UI polls. 'allowed' is transient (createTask dispatches at once) and 'failed' waits for the person. */
+export const ACTIVE_STATUSES: ReadonlySet<Task['status']> = new Set(['dispatched', 'working', 'claimed', 'checking']);
 
 export function hhmm(iso: string): string {
   const d = new Date(iso);
@@ -64,7 +65,9 @@ export function describeTask(t: Task, rules: Rule[]): RowView {
   // the claim line
   let claimLine: string | null = null;
   const lastProgress = t.foProgress.length ? t.foProgress[t.foProgress.length - 1] : null;
-  if (t.status === 'failed') claimLine = `Fo could not finish: ${t.error ?? 'no reason given'}`;
+  if (t.status === 'failed' && !t.dispatchedAt) claimLine = t.error ?? 'Fo did not accept the task';
+  else if (t.status === 'failed') claimLine = `Fo could not finish: ${t.error ?? 'no reason given'}`;
+  else if ((t.status === 'working' || t.status === 'dispatched') && t.error) claimLine = t.error;
   else if (t.status === 'claimed' || t.status === 'checking' || t.status === 'verified' || t.status === 'unverified' || t.status === 'confirmed_by_user') {
     claimLine = t.foClaim ? `Fo says done: "${t.foClaim}"` : 'Fo says done';
   } else if (t.status === 'awaiting_user') claimLine = t.foQuestion ? `Fo asks: "${t.foQuestion}"` : 'Fo has a question';
@@ -87,7 +90,8 @@ export function describeTask(t: Task, rules: Rule[]): RowView {
       break;
     case 'failed':
       proofKind = 'failed';
-      proofLine = 'nothing to check';
+      proofLine = t.dispatchedAt ? 'nothing to check' : 'not sent';
+      proofAction = t.dispatchedAt ? null : 'retry';
       break;
     case 'awaiting_user':
       proofKind = 'question';
@@ -117,18 +121,11 @@ export function describeTask(t: Task, rules: Rule[]): RowView {
         proofLine = 'no check defined; confirm by hand if it happened';
       } else {
         proofKind = 'unverified';
-        proofLine = t.reaskCount > 0 ? `${reason}; asked Fo again; confirm by hand if it happened` : `${reason}; asking Fo again`;
+        proofLine = t.reaskCount > 0 ? `${reason}; asked Fo again; confirm by hand if it happened` : `${reason}; confirm by hand if it happened`;
       }
       proofAction = 'confirm';
       break;
     }
-    case 'allowed':
-      if (t.error) {
-        proofKind = 'waiting';
-        proofLine = 'not sent yet';
-        proofAction = 'retry';
-      }
-      break;
     default:
       break;
   }

@@ -124,8 +124,19 @@ export class FoClient {
   }
 
   private async call(name: string, args: Record<string, unknown>): Promise<CallToolResult> {
-    const res = await this.need().callTool({ name, arguments: args });
-    return res as CallToolResult;
+    try {
+      const res = await this.need().callTool({ name, arguments: args });
+      return res as CallToolResult;
+    } catch (err) {
+      if (err instanceof UnauthorizedError || /401|unauthori[sz]ed/i.test((err as Error).message ?? '')) {
+        // the token was refused and the refresh did not help: forget the session so connect() asks for a new one
+        this.client = null;
+        this.transport = null;
+        this.tools = null;
+        throw new Error('Fo needs reconnecting: open /connect and connect Fo again.');
+      }
+      throw err;
+    }
   }
 
   async askFo(args: AskArgs, trace: TraceRef): Promise<FoReply> {
@@ -210,7 +221,7 @@ function short(s: string, n = 60): string {
 // ---- process-wide instance for the app -------------------------------------------
 export function foOptionsFromEnv(): FoClientOptions {
   const mode: FoMode = process.env.FO_MODE === 'fake' ? 'fake' : 'live';
-  const appUrl = (process.env.APP_URL ?? 'http://localhost:3000').replace(/\/$/, '');
+  const appUrl = (process.env.APP_URL ?? 'http://localhost:3100').replace(/\/$/, '');
   return { mode, url: process.env.FO_MCP_URL ?? DEFAULT_URL, redirectUrl: `${appUrl}/api/fo/callback` };
 }
 

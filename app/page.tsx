@@ -19,7 +19,7 @@ export default async function Page({ searchParams }: { searchParams: Promise<Sea
   if (fixture) {
     const initial: LedgerInitial = {
       tasks: fixtureTasks(fixture),
-      rules: fixture === 'empty' || fixture === 'disconnected' ? (fixture === 'empty' ? FIXTURE_RULES : FIXTURE_RULES) : FIXTURE_RULES,
+      rules: FIXTURE_RULES,
       contacts: [
         { id: 'c1', name: 'Northfield Dental', email: null, phone: null },
         { id: 'c2', name: 'Mum', email: null, phone: null },

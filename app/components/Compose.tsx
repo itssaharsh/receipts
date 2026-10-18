@@ -3,13 +3,8 @@
 import { useState } from 'react';
 import type { Contact, TaskCategory, TaskInput } from '@/lib/types';
 
-export const DEMO_TASK: TaskInput = {
-  text: 'Book my dentist check-up: email Northfield Dental to confirm Thursday 3pm and put it on my calendar',
-  counterparty: 'Northfield Dental',
-  amountCents: 0,
-  category: 'booking',
-  postcondition: { kind: 'calendar_event', titleContains: 'Dental', startISO: '2026-10-22T15:00:00+01:00', windowMinutes: 30 },
-};
+/** The demo task's words; its time is filled as a local wall time below (Thu 22 Oct 2026, 15:00) so the browser's zone applies. */
+const DEMO_TEXT = 'Book my dentist check-up: email Northfield Dental to confirm Thursday 3pm and put it on my calendar';
 
 /** "2026-10-22T15:00" from a datetime-local field -> an ISO string with the browser's offset for that instant. */
 export function localToISO(local: string): string {
@@ -48,7 +43,7 @@ export function Compose({
   const counterparty = who === '__other' ? other : who;
 
   function fillDemo() {
-    setText(DEMO_TASK.text);
+    setText(DEMO_TEXT);
     setWho(contacts.some((c) => c.name === 'Northfield Dental') ? 'Northfield Dental' : '__other');
     setOther('Northfield Dental');
     setAmount('');

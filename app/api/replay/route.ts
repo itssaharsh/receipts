@@ -1,5 +1,5 @@
 import { NextResponse, type NextRequest } from 'next/server';
-import { getDeps } from '@/lib/deps';
+import { forbidden, getDeps, sameOrigin } from '@/lib/deps';
 import { loadReplay, snapshotRun } from '@/lib/replay';
 import { currentRunId } from '@/lib/store';
 
@@ -14,8 +14,10 @@ export async function GET() {
 
 /** POST /api/replay?run=<id> -> saves that run (the current one by default) as the replay. */
 export async function POST(req: NextRequest) {
+  if (!sameOrigin(req)) return forbidden();
   const { db } = getDeps();
-  const runId = req.nextUrl.searchParams.get('run') ?? currentRunId(db);
+  const requested = req.nextUrl.searchParams.get('run');
+  const runId = requested && /^[\w.-]{1,80}$/.test(requested) ? requested : currentRunId(db);
   try {
     const snap = snapshotRun(db, runId);
     return NextResponse.json({ runId: snap.runId, savedAt: snap.savedAt, tasks: snap.tasks.length, events: snap.events.length }, { status: 201 });

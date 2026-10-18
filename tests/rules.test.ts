@@ -75,3 +75,15 @@ describe('rules evaluator (AC-1, AC-2)', () => {
     expect(d.ruleId).toBe('R4');
   });
 });
+
+describe('input validation (review fixes)', () => {
+  it('a max_amount rule needs a cap, a hold rule needs a category, and a task needs real words and a real time', async () => {
+    const { RuleInputSchema, TaskInputSchema } = await import('@/lib/types');
+    expect(RuleInputSchema.safeParse({ kind: 'max_amount', label: 'cap', params: {} }).success).toBe(false);
+    expect(RuleInputSchema.safeParse({ kind: 'max_amount', label: 'cap', params: { maxCents: 2500 } }).success).toBe(true);
+    expect(RuleInputSchema.safeParse({ kind: 'hold_categories', label: 'wait', params: { categories: [] } }).success).toBe(false);
+    expect(TaskInputSchema.safeParse({ text: '   ', counterparty: 'x', category: 'other', postcondition: { kind: 'none' } }).success).toBe(false);
+    expect(TaskInputSchema.safeParse({ text: 'Book it', counterparty: '  ', category: 'other', postcondition: { kind: 'none' } }).success).toBe(false);
+    expect(TaskInputSchema.safeParse({ text: 'Book it', counterparty: 'Mum', category: 'booking', postcondition: { kind: 'calendar_event', titleContains: 'x', startISO: 'not a date', windowMinutes: 30 } }).success).toBe(false);
+  });
+});

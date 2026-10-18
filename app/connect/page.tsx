@@ -33,7 +33,7 @@ export default async function ConnectPage({ searchParams }: { searchParams: Prom
 
       {(foMsg === 'error' || gMsg === 'error') && message && (
         <p className="mt-4 rounded-md border border-line-input bg-danger-container px-3 py-2 text-danger" role="alert">
-          {decodeURIComponent(message)}
+          {message}
         </p>
       )}
       {foMsg === 'connected' && (
@@ -83,7 +83,7 @@ export default async function ConnectPage({ searchParams }: { searchParams: Prom
           {process.env.ORACLE_MODE === 'fake' ? (
             <span className="text-[14px]">Unset ORACLE_MODE in .env.local to use your real calendar.</span>
           ) : !google ? (
-            <span className="text-[14px]">Add GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET to .env.local (a Web application OAuth client with http://localhost:3000/api/google/callback as a redirect URI, and your account as a test user), then restart.</span>
+            <span className="text-[14px]">Add GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET to .env.local (a Web application OAuth client with {(process.env.APP_URL ?? 'http://localhost:3100').replace(/\/$/, '')}/api/google/callback as a redirect URI, and your account as a test user), then restart.</span>
           ) : googleConnected ? (
             <>
               <span className="text-[14px]">Connected.</span>

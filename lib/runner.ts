@@ -31,6 +31,25 @@ const ANSWERED_MARK = 'Receipts answered: ';
 
 const trace = (t: Task) => ({ runId: t.runId, taskId: t.id });
 
+// One step at a time per task: a live get_fo_reply can block for 40 s, and a second poll meanwhile would duplicate
+// trace events, overwrite progress and could answer Fo's confirmation twice.
+type GlobalWithLocks = typeof globalThis & { __receiptsTaskLocks?: Map<string, Promise<Task>> };
+function locks(): Map<string, Promise<Task>> {
+  const g = globalThis as GlobalWithLocks;
+  if (!g.__receiptsTaskLocks) g.__receiptsTaskLocks = new Map();
+  return g.__receiptsTaskLocks;
+}
+async function withTaskLock(taskId: string, fn: () => Promise<Task>, ifBusy: () => Task): Promise<Task> {
+  const l = locks();
+  const running = l.get(taskId);
+  if (running) return ifBusy();
+  const p = fn().finally(() => {
+    if (l.get(taskId) === p) l.delete(taskId);
+  });
+  l.set(taskId, p);
+  return p;
+}
+
 /** Evaluate a new task against the rules; dispatch it when allowed, hold it otherwise. */
 export async function createTask(deps: RunnerDeps, raw: TaskInput): Promise<Task> {
   const input = TaskInputSchema.parse(raw);
@@ -87,6 +106,10 @@ export async function decide(deps: RunnerDeps, taskId: string, userDecision: Use
 
   let allowedByRuleId: string | null = null;
   if (userDecision === 'approve_with_rule') {
+    const heldBy = task.decision?.ruleId ? getRule(db, task.decision.ruleId) : null;
+    if (heldBy?.kind === 'hold_categories') {
+      throw new Error(`${heldBy.id} ${heldBy.label}: ${task.category} tasks always wait; approve this one once instead of adding a rule.`);
+    }
     const input = ruleInput ?? defaultRuleFor(deps, task);
     const rule = createRule(db, input);
     bumpRuleUse(db, rule.id);
@@ -119,44 +142,72 @@ function contextFor(task: Task): string {
   return parts.join(' ');
 }
 
-/** One ask_fo per task. Idempotent on dispatchedAt. */
+/**
+ * One ask_fo per task, never retried on its own: a second ask would be a second errand. Idempotent on dispatchedAt;
+ * a dispatch that Fo did not accept ends `failed` and waits for the person's explicit "Try sending again".
+ */
 export async function dispatch(deps: RunnerDeps, task: Task): Promise<Task> {
   const { db, fo } = deps;
   if (task.dispatchedAt) return task;
-  const conn = await fo.connect();
-  if (!conn.connected) throw new FoNotConnectedError(conn.authorizationUrl);
-  let reply: FoReply;
-  try {
-    reply = await fo.askFo({ request: task.text, context: contextFor(task), newConversation: true }, trace(task));
-  } catch (err) {
-    return updateTask(db, task.id, { error: `Fo did not accept the task: ${(err as Error).message}` });
-  }
-  const t = updateTask(db, task.id, {
-    status: 'dispatched',
-    dispatchedAt: nowISO(),
-    foConversationId: reply.conversationId,
-    foProgress: reply.progress ? [reply.progress] : [],
-    error: null,
-  });
-  if (reply.status === 'working') return t;
-  return applyReply(deps, t, reply);
+  return withTaskLock(
+    task.id,
+    async () => {
+      const fresh = mustGetTask(db, task.id);
+      if (fresh.dispatchedAt) return fresh;
+      const conn = await fo.connect();
+      if (!conn.connected) throw new FoNotConnectedError(conn.authorizationUrl);
+      let reply: FoReply;
+      try {
+        reply = await fo.askFo({ request: fresh.text, context: contextFor(fresh), newConversation: true }, trace(fresh));
+      } catch (err) {
+        return updateTask(db, fresh.id, { status: 'failed', error: `Fo did not accept the task: ${(err as Error).message}` });
+      }
+      const t = updateTask(db, fresh.id, {
+        status: 'dispatched',
+        dispatchedAt: nowISO(),
+        foConversationId: reply.conversationId,
+        foProgress: reply.progress ? [reply.progress] : [],
+        error: null,
+      });
+      if (reply.status === 'working') return t;
+      return applyReply(deps, t, reply);
+    },
+    () => mustGetTask(db, task.id),
+  );
+}
+
+/** The person asks to send a task Fo did not accept: back to allowed, then one dispatch. */
+export async function retryDispatch(deps: RunnerDeps, taskId: string): Promise<Task> {
+  const task = mustGetTask(deps.db, taskId);
+  if (task.status !== 'failed' || task.dispatchedAt) throw new Error(`Task ${taskId} cannot be sent again from status ${task.status}.`);
+  writeEvent(deps.db, { ...trace(task), kind: 'note', summary: 'you asked to send it again', payload: {} });
+  const t = updateTask(deps.db, taskId, { status: 'allowed', error: null });
+  return dispatch(deps, t);
 }
 
 /** Advance a task by one step. Safe to call repeatedly; the UI calls it every few seconds. */
 export async function poll(deps: RunnerDeps, taskId: string): Promise<Task> {
   const { db, fo } = deps;
   const task = mustGetTask(db, taskId);
-  if (task.status === 'allowed' && !task.dispatchedAt) return dispatch(deps, task);
+  if (task.status === 'allowed' && !task.dispatchedAt) return task.error ? task : dispatch(deps, task);
   if (task.status === 'claimed' || task.status === 'checking') return check(deps, taskId);
   if (task.status !== 'dispatched' && task.status !== 'working') return task;
   if (!task.foConversationId) return updateTask(db, taskId, { status: 'failed', error: 'Fo returned no conversation to follow.' });
-  let reply: FoReply;
-  try {
-    reply = await fo.getFoReply(task.foConversationId, trace(task));
-  } catch (err) {
-    return updateTask(db, taskId, { error: `Fo is not answering; still trying (${(err as Error).message})` });
-  }
-  return applyReply(deps, task, reply);
+  return withTaskLock(
+    taskId,
+    async () => {
+      const fresh = mustGetTask(db, taskId);
+      if (fresh.status !== 'dispatched' && fresh.status !== 'working') return fresh;
+      let reply: FoReply;
+      try {
+        reply = await fo.getFoReply(fresh.foConversationId!, trace(fresh));
+      } catch (err) {
+        return updateTask(db, taskId, { error: `Fo is not answering; still trying (${(err as Error).message})` });
+      }
+      return applyReply(deps, fresh, reply);
+    },
+    () => mustGetTask(db, taskId),
+  );
 }
 
 async function applyReply(deps: RunnerDeps, task: Task, reply: FoReply): Promise<Task> {
@@ -202,7 +253,7 @@ async function applyReply(deps: RunnerDeps, task: Task, reply: FoReply): Promise
         }
       }
       const t = updateTask(db, task.id, { ...convPatch, status: 'claimed', foClaim: claim, foProgress: progress, foQuestion: null });
-      return check(deps, t.id);
+      return checkInner(deps, t.id); // already under this task's lock
     }
   }
 }
@@ -220,6 +271,10 @@ export async function answerQuestion(deps: RunnerDeps, taskId: string, answer: s
 
 /** The oracle: verified from the calendar, or re-ask Fo once, or unverified. */
 export async function check(deps: RunnerDeps, taskId: string): Promise<Task> {
+  return withTaskLock(taskId, () => checkInner(deps, taskId), () => mustGetTask(deps.db, taskId));
+}
+
+async function checkInner(deps: RunnerDeps, taskId: string): Promise<Task> {
   const { db, fo, oracle } = deps;
   const task = mustGetTask(db, taskId);
   if (!['claimed', 'checking', 'unverified'].includes(task.status)) return task;

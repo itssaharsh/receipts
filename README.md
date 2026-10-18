@@ -35,10 +35,10 @@ Built at the GSD (Get Sh\*t Done) Hackathon, Wajo × Claude, 17 to 19 October 20
 ```bash
 cp .env.example .env.local      # fill GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET; set FO_MODE=live
 npm install
-npm run dev -- -p 3100          # then open http://localhost:3100/connect to connect Fo and Google Calendar
+npm run dev                     # port 3100; then open http://localhost:3100/connect to connect Fo and Google Calendar
 ```
 
-For a look without any account: `FO_MODE=fake ORACLE_MODE=fake npm run dev -- -p 3100` and open `http://localhost:3100/?demo=1`. Every row state is also reachable with `?state=verified|held|working|unverified|manual|withheld|failed|awaiting|empty|disconnected`.
+For a look without any account: `FO_MODE=fake ORACLE_MODE=fake npm run dev` and open `http://localhost:3100/?demo=1`. Every row state is also reachable with `?state=verified|held|working|unverified|manual|withheld|failed|awaiting|empty|disconnected`.
 
 Shortcuts: `Alt+Shift+R` clears the ledger and starts a new run; `Alt+Shift+P` replays the recorded real run (saved with `POST /api/replay`). `?record=1` docks notices away from the receipts for screen recording.
 

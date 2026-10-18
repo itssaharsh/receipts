@@ -184,7 +184,7 @@ export function googleFromEnv(db: Db, fetchFn?: typeof fetch): GoogleAuth | null
   const clientId = process.env.GOOGLE_CLIENT_ID;
   const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
   if (!clientId || !clientSecret) return null;
-  const appUrl = (process.env.APP_URL ?? 'http://localhost:3000').replace(/\/$/, '');
+  const appUrl = (process.env.APP_URL ?? 'http://localhost:3100').replace(/\/$/, '');
   return new GoogleAuth(db, { clientId, clientSecret, redirectUrl: `${appUrl}/api/google/callback`, fetch: fetchFn });
 }
 

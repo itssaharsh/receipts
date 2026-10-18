@@ -71,3 +71,19 @@ describe('decisions on held tasks (AC-2, AC-3)', () => {
     await expect(decide(deps, t.id, 'approve_once')).rejects.toThrow(/not waiting/);
   });
 });
+
+describe('review fixes (T09)', () => {
+  it('approve and add a rule is refused for a category that always waits, even with a rule in the body', async () => {
+    const db = openDb(':memory:');
+    ensureDefaults(db, { clinicEmail: 'clinic@example.com' });
+    const fo = new FoClient(db, { mode: 'fake', url: 'inmemory://fo', redirectUrl: 'http://localhost:3100/api/fo/callback' });
+    const deps: RunnerDeps = { db, fo, oracle: new FakeCalendarOracle([]) };
+    const t = await createTask(deps, { text: 'Cancel my gym membership', counterparty: 'PureGym', amountCents: 0, category: 'cancellation', postcondition: { kind: 'none' } });
+    expect(t.status).toBe('held');
+    await expect(decide(deps, t.id, 'approve_with_rule', { kind: 'allow_counterparties', label: 'PureGym allowed', params: { names: ['PureGym'] } })).rejects.toThrow(/always wait/);
+    const once = await decide(deps, t.id, 'approve_once');
+    expect(['dispatched', 'working']).toContain(once.status);
+    await fo.close();
+    db.close();
+  });
+});
