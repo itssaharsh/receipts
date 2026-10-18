@@ -162,21 +162,24 @@
         "T02"
       ],
       "writes": [
-        "lib/runner.ts",
-        "lib/check.ts",
-        "lib/oracle.ts",
-        "app/api/tasks/route.ts",
-        "app/api/tasks/[id]/decide/route.ts",
-        "app/api/tasks/[id]/poll/route.ts",
-        "app/api/tasks/[id]/check/route.ts",
-        "app/api/tasks/[id]/confirm/route.ts",
         "app/api/rules/route.ts",
         "app/api/runs/route.ts",
+        "app/api/tasks/[id]/answer/route.ts",
+        "app/api/tasks/[id]/check/route.ts",
+        "app/api/tasks/[id]/confirm/route.ts",
+        "app/api/tasks/[id]/decide/route.ts",
+        "app/api/tasks/[id]/poll/route.ts",
+        "app/api/tasks/route.ts",
         "app/api/trace/[id]/route.ts",
         "app/api/trace/export/route.ts",
-        "tests/runner.test.ts",
-        "tests/decide.test.ts",
+        "lib/check.ts",
+        "lib/deps.ts",
+        "lib/oracle.ts",
+        "lib/runner.ts",
+        "lib/store.ts",
         "tests/check.test.ts",
+        "tests/decide.test.ts",
+        "tests/runner.test.ts",
         "tests/trace-api.test.ts"
       ],
       "produces": [
@@ -212,8 +215,18 @@
         "npm run typecheck"
       ],
       "rollback": "git revert the T03 commit",
-      "status": "todo",
-      "notes": ""
+      "status": "done",
+      "notes": "store.ts and deps.ts hold the row mapping and the route plumbing; /answer added for a question the rules cannot answer",
+      "base": "cf54975",
+      "started_after": 16,
+      "evidence": [
+        "E0026",
+        "E0027",
+        "E0028",
+        "E0029",
+        "E0030",
+        "E0031"
+      ]
     },
     {
       "id": "T04",
