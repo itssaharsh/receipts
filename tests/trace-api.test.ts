@@ -37,7 +37,7 @@ describe('API routes: tasks, trace, export, runs (AC-10)', () => {
         counterparty: 'Northfield Dental',
         amountCents: 0,
         category: 'booking',
-        postcondition: { kind: 'calendar_event', titleContains: 'Dental', startISO: '2026-10-23T15:00:00+01:00', windowMinutes: 30 },
+        postcondition: { kind: 'calendar_event', titleContains: 'Dental', startISO: '2026-10-22T15:00:00+01:00', windowMinutes: 30 },
       }),
     );
     expect(res.status).toBe(201);

@@ -51,9 +51,9 @@ export class NoOracle implements Oracle {
   }
 }
 
-/** The event the simulated calendar holds, matching the demo task (Thu 23 Oct 2026, 15:00 London). */
+/** The event the simulated calendar holds, matching the demo task (Thu 22 Oct 2026, 15:00 London). */
 export const FAKE_CALENDAR_DEFAULT: CalendarEventLite[] = [
-  { id: 'ev-fake-dental', summary: 'Northfield Dental check-up', start: '2026-10-23T15:00:00+01:00', end: '2026-10-23T15:30:00+01:00' },
+  { id: 'ev-fake-dental', summary: 'Northfield Dental check-up', start: '2026-10-22T15:00:00+01:00', end: '2026-10-22T15:30:00+01:00' },
 ];
 
 type OracleFactory = (db: Db) => Oracle | null;

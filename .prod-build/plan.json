@@ -238,15 +238,18 @@
         "T03"
       ],
       "writes": [
+        "app/api/demo/reset/route.ts",
+        "app/api/demo/seed/route.ts",
+        "app/components/**",
         "app/globals.css",
+        "app/icon.svg",
         "app/layout.tsx",
         "app/page.tsx",
-        "app/components/**",
+        "lib/fixtures.ts",
         "lib/seed.ts",
-        "seed/earlier-run.json",
-        "tests/states.test.ts",
+        "lib/view.ts",
         "public/icon.svg",
-        "app/icon.svg"
+        "tests/states.test.ts"
       ],
       "produces": [],
       "consumes": [
@@ -272,8 +275,16 @@
         "npm run build"
       ],
       "rollback": "git revert the T04 commit",
-      "status": "todo",
-      "notes": ""
+      "status": "done",
+      "notes": "the seed is the demo task in lib/seed.ts run through the pipeline (no static JSON); fixtures and the view model live in lib/",
+      "base": "32ab425",
+      "started_after": 31,
+      "evidence": [
+        "E0039",
+        "E0040",
+        "E0041",
+        "E0042"
+      ]
     },
     {
       "id": "T05",

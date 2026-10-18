@@ -12,7 +12,7 @@ const dentist: TaskInput = {
   counterparty: 'Northfield Dental',
   amountCents: 0,
   category: 'booking',
-  postcondition: { kind: 'calendar_event', titleContains: 'Dental', startISO: '2026-10-23T15:00:00+01:00', windowMinutes: 30 },
+  postcondition: { kind: 'calendar_event', titleContains: 'Dental', startISO: '2026-10-22T15:00:00+01:00', windowMinutes: 30 },
 };
 
 async function settle(deps: RunnerDeps, id: string, max = 12) {
@@ -35,7 +35,7 @@ describe('task runner (AC-1, AC-4, AC-5, AC-6, AC-7)', () => {
   });
 
   it('an allowed task is dispatched, polled to completion and verified from the calendar', async () => {
-    const oracle = new FakeCalendarOracle([{ id: 'ev-7kq', summary: 'Northfield Dental check-up', start: '2026-10-23T15:00:00+01:00' }]);
+    const oracle = new FakeCalendarOracle([{ id: 'ev-7kq', summary: 'Northfield Dental check-up', start: '2026-10-22T15:00:00+01:00' }]);
     const deps: RunnerDeps = { db, fo, oracle };
     const created = await createTask(deps, dentist);
     expect(created.decision?.outcome).toBe('allowed');
@@ -111,7 +111,7 @@ describe('task runner (AC-1, AC-4, AC-5, AC-6, AC-7)', () => {
   });
 
   it('the run count reports sent, verified, unverified, withheld and failed, and flags simulated runs', async () => {
-    const deps: RunnerDeps = { db, fo, oracle: new FakeCalendarOracle([{ id: 'ev-1', summary: 'Dental', start: '2026-10-23T15:00:00+01:00' }]) };
+    const deps: RunnerDeps = { db, fo, oracle: new FakeCalendarOracle([{ id: 'ev-1', summary: 'Dental', start: '2026-10-22T15:00:00+01:00' }]) };
     const a = await createTask(deps, dentist);
     await settle(deps, a.id);
     const held = await createTask(deps, { text: 'Order flowers for $45 to Mum', counterparty: 'Mum', amountCents: 4500, category: 'purchase', postcondition: { kind: 'none' } });

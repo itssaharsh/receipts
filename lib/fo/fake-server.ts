@@ -29,7 +29,7 @@ export function pickScenario(text: string): FakeScenario {
 }
 
 export const FAKE_STEPS = ['Reading your request', 'Emailing Northfield Dental to confirm Thursday 3pm', 'Adding the appointment to your calendar'];
-export const FAKE_COMPLETE_REPLY = 'Booked Thu 23 Oct 15:00 with Northfield Dental and emailed the clinic to confirm.';
+export const FAKE_COMPLETE_REPLY = 'Booked Thu 22 Oct 15:00 with Northfield Dental and emailed the clinic to confirm.';
 export const FAKE_CONFIRM_QUESTION = 'This order comes to $45.00 including delivery. Shall I go ahead?';
 export const FAKE_FAIL_REPLY = 'Fo could not reach Northfield Dental: the number rang out twice.';
 

@@ -1,7 +1,7 @@
 import type { Oracle } from './oracle';
 import type { CheckResult, Postcondition } from './types';
 
-/** "Thu 23 Oct 15:00" from an ISO string, keeping the wall time the string carries (no zone conversion). */
+/** "Thu 22 Oct 15:00" from an ISO string, keeping the wall time the string carries (no zone conversion). */
 export function fmtWall(iso: string): string {
   const m = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/.exec(iso);
   if (!m) return iso;

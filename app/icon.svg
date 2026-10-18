@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" role="img"><title>Receipts</title>
+<style>.m{stroke:#141a16}@media (prefers-color-scheme:dark){.m{stroke:#f1f2ee}}</style>
+<rect x="4" y="10" width="40" height="28" rx="3" fill="none" class="m" stroke-width="3"/>
+<path d="M30 10v4M30 18v4M30 26v4M30 34v4" class="m" stroke-width="3" stroke-linecap="round"/>
+<circle cx="37" cy="24" r="4" fill="#106b4f"/>
+</svg>
