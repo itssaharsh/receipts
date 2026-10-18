@@ -28,7 +28,7 @@ This file holds the form answers (items C to G) and the X post text. Items A (th
 
 ## Run count
 
-Live runs of the demo task (the dentist booking), attempted and succeeded: 0 attempted, 0 succeeded so far; the live Fo connection and the live calendar are the builder's accounts and are connected before the final take, after which this line is updated with the real numbers.
+Live runs of the demo task (the dentist booking) through the real Fo, from the builder's own Wajo account, on 18 October: 2 attempted, 1 succeeded. The first stopped at a question ("Which Northfield Dental is your dentist, or can you share its email address?") because Receipts had not passed the clinic's details from the contacts; that was fixed, and the second run booked the appointment and emailed the clinic (the builder's own second mailbox) in about 1 minute 40 seconds. The outcome was verified through the Google Calendar API and the inbox by the builder (event "Dentist check-up at Northfield Dental", Thu 22 Oct 15:00 IST; email from fo@wajo.ai at 15:00 UTC); the app's own calendar check was not yet connected during these two runs, so their receipts read "no calendar connected; confirm by hand". The recorded take's run is added here when it is made.
 
 Simulated runs during the build (simulated Fo and simulated calendar, not counted on the form): 8 attempted, 8 succeeded (the backup take, four consecutive scripted QA runs, the last one after the review fixes, one unprepared-input run that ended unverified by design and was confirmed by hand, two seed runs). The reviewer's hand runs on the simulated Fo are not counted.
 
