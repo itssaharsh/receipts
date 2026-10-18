@@ -3,11 +3,41 @@
   "mode": "hackathon",
   "channel": "direct",
   "parallel": false,
-  "suite": ["npm run typecheck", "npm test"],
+  "suite": [
+    "npm run typecheck",
+    "npm test"
+  ],
   "milestones": [
-    {"id": "M1", "goal": "J1 and J2 run end to end on the fake Fo with real rules, a real ledger and the trace: compose -> evaluate -> dispatch -> poll -> claim -> check (fake calendar) -> verified; held card -> decisions", "tasks": ["T01", "T02", "T03", "T04"]},
-    {"id": "M2", "goal": "The real oracle and the judged surfaces: Google Calendar check, trace drawer and export, states, /connect, /about, README, backup take", "tasks": ["T05", "T06", "T07", "T08"]},
-    {"id": "M3", "goal": "Verify, review, submit: QA and the judged-path checks, fresh review and bug hunt, security and cleanup, SUBMISSION.md and the trace file, the final take", "tasks": ["T09", "T10", "T11", "T12"]}
+    {
+      "id": "M1",
+      "goal": "J1 and J2 run end to end on the fake Fo with real rules, a real ledger and the trace: compose -> evaluate -> dispatch -> poll -> claim -> check (fake calendar) -> verified; held card -> decisions",
+      "tasks": [
+        "T01",
+        "T02",
+        "T03",
+        "T04"
+      ]
+    },
+    {
+      "id": "M2",
+      "goal": "The real oracle and the judged surfaces: Google Calendar check, trace drawer and export, states, /connect, /about, README, backup take",
+      "tasks": [
+        "T05",
+        "T06",
+        "T07",
+        "T08"
+      ]
+    },
+    {
+      "id": "M3",
+      "goal": "Verify, review, submit: QA and the judged-path checks, fresh review and bug hunt, security and cleanup, SUBMISSION.md and the trace file, the final take",
+      "tasks": [
+        "T09",
+        "T10",
+        "T11",
+        "T12"
+      ]
+    }
   ],
   "tasks": [
     {
@@ -17,17 +47,49 @@
       "role": "product-engineer",
       "size": "M",
       "deps": [],
-      "writes": ["lib/db.ts", "lib/schema.sql", "lib/types.ts", "lib/rules.ts", "lib/trace.ts", "tests/rules.test.ts", "tests/trace.test.ts", "vitest.config.ts", "package.json", "package-lock.json", "tsconfig.json"],
-      "produces": ["contract:lib/types.ts#Task,Rule,Decision,TraceEvent,Postcondition"],
+      "writes": [
+        "lib/db.ts",
+        "lib/types.ts",
+        "lib/rules.ts",
+        "lib/trace.ts",
+        "tests/rules.test.ts",
+        "tests/trace.test.ts",
+        "vitest.config.mts",
+        "package.json",
+        "package-lock.json",
+        "tsconfig.json",
+        "lib/schema.ts"
+      ],
+      "produces": [
+        "contract:lib/types.ts#Task,Rule,Decision,TraceEvent,Postcondition"
+      ],
       "consumes": [],
-      "runtime": {"db": "data/test.db"},
+      "runtime": {
+        "db": "data/test.db"
+      },
       "isolation": "main",
       "risk": [],
-      "acceptance": ["AC-1", "AC-2", "WHEN a trace event is written THE SYSTEM SHALL append it to SQLite and data/trace.jsonl with a timestamp and redact any token-like string"],
-      "verify": ["npm test -- rules", "npm test -- trace", "npm run typecheck"],
+      "acceptance": [
+        "AC-1",
+        "AC-2",
+        "WHEN a trace event is written THE SYSTEM SHALL append it to SQLite and data/trace.jsonl with a timestamp and redact any token-like string"
+      ],
+      "verify": [
+        "npm test -- rules",
+        "npm test -- trace",
+        "npm run typecheck"
+      ],
       "rollback": "git revert the T01 commit; delete data/*.db",
-      "status": "todo",
-      "notes": ""
+      "status": "done",
+      "notes": "schema lives in lib/schema.ts (a TS string) instead of lib/schema.sql so it ships inside the Next bundle",
+      "base": "e079f55",
+      "started_after": 0,
+      "evidence": [
+        "E0005",
+        "E0006",
+        "E0007",
+        "E0008"
+      ]
     },
     {
       "id": "T02",
@@ -35,15 +97,49 @@
       "objective": "An OAuthClientProvider backed by SQLite (dynamic registration, PKCE, tokens, localhost redirect), a Fo client wrapper (connect, listTools, ask_fo, get_fo_reply, get_fo_conversation) that logs every call as a trace event, and an in-process fake Fo (McpServer over InMemoryTransport) with scripted replies: complete, confirmation question, never-completing, 401",
       "role": "product-engineer",
       "size": "L",
-      "deps": ["T01"],
-      "writes": ["lib/fo/oauth.ts", "lib/fo/client.ts", "lib/fo/fake-server.ts", "lib/fo/types.ts", "tests/fo-client.test.ts", "tests/fo-auth.test.ts", "app/api/fo/connect/route.ts", "app/api/fo/callback/route.ts", "app/api/status/route.ts", ".env.example"],
-      "produces": ["contract:lib/fo/client.ts#FoClient"],
-      "consumes": ["T01:lib/trace.ts", "T01:lib/db.ts"],
-      "runtime": {"ports": [3000], "db": "data/test.db"},
+      "deps": [
+        "T01"
+      ],
+      "writes": [
+        "lib/fo/oauth.ts",
+        "lib/fo/client.ts",
+        "lib/fo/fake-server.ts",
+        "lib/fo/types.ts",
+        "tests/fo-client.test.ts",
+        "tests/fo-auth.test.ts",
+        "app/api/fo/connect/route.ts",
+        "app/api/fo/callback/route.ts",
+        "app/api/status/route.ts",
+        ".env.example"
+      ],
+      "produces": [
+        "contract:lib/fo/client.ts#FoClient"
+      ],
+      "consumes": [
+        "T01:lib/trace.ts",
+        "T01:lib/db.ts"
+      ],
+      "runtime": {
+        "ports": [
+          3000
+        ],
+        "db": "data/test.db"
+      },
       "isolation": "main",
-      "risk": ["auth"],
-      "acceptance": ["AC-4", "AC-12", "WHEN /api/fo/connect is opened THE SYSTEM SHALL register the client (or reuse it), store the PKCE verifier and return the authorization URL; WHEN /api/fo/callback receives the code THE SYSTEM SHALL exchange it, store the tokens and redirect to /connect", "WHEN one real initialize is sent to https://mcp.api.wajo.ai/fo without a token THE SYSTEM SHALL record the server's instructions in the ledger (evidence of the real endpoint)"],
-      "verify": ["npm test -- fo-client", "npm test -- fo-auth", "npm run typecheck"],
+      "risk": [
+        "auth"
+      ],
+      "acceptance": [
+        "AC-4",
+        "AC-12",
+        "WHEN /api/fo/connect is opened THE SYSTEM SHALL register the client (or reuse it), store the PKCE verifier and return the authorization URL; WHEN /api/fo/callback receives the code THE SYSTEM SHALL exchange it, store the tokens and redirect to /connect",
+        "WHEN one real initialize is sent to https://mcp.api.wajo.ai/fo without a token THE SYSTEM SHALL record the server's instructions in the ledger (evidence of the real endpoint)"
+      ],
+      "verify": [
+        "npm test -- fo-client",
+        "npm test -- fo-auth",
+        "npm run typecheck"
+      ],
       "rollback": "git revert the T02 commit; delete data/*.db",
       "status": "todo",
       "notes": ""
@@ -54,15 +150,59 @@
       "objective": "POST /api/tasks evaluates and stores a task (allowed -> dispatch; held -> wait); /decide applies approve once, approve and add a rule, decline; /poll advances Fo (one get_fo_reply per call, confirmation answered from the approval or surfaced); /check runs the postcondition through a pluggable oracle (fake calendar in tests); /confirm records the manual tick; GET /api/tasks, /api/rules, /api/runs, /api/trace/[id], /api/trace/export",
       "role": "product-engineer",
       "size": "L",
-      "deps": ["T02"],
-      "writes": ["lib/runner.ts", "lib/check.ts", "lib/oracle.ts", "app/api/tasks/route.ts", "app/api/tasks/[id]/decide/route.ts", "app/api/tasks/[id]/poll/route.ts", "app/api/tasks/[id]/check/route.ts", "app/api/tasks/[id]/confirm/route.ts", "app/api/rules/route.ts", "app/api/runs/route.ts", "app/api/trace/[id]/route.ts", "app/api/trace/export/route.ts", "tests/runner.test.ts", "tests/decide.test.ts", "tests/check.test.ts", "tests/trace-api.test.ts"],
-      "produces": ["contract:lib/types.ts#TaskView"],
-      "consumes": ["T02:lib/fo/client.ts", "T01:lib/rules.ts"],
-      "runtime": {"ports": [3000], "db": "data/test.db"},
+      "deps": [
+        "T02"
+      ],
+      "writes": [
+        "lib/runner.ts",
+        "lib/check.ts",
+        "lib/oracle.ts",
+        "app/api/tasks/route.ts",
+        "app/api/tasks/[id]/decide/route.ts",
+        "app/api/tasks/[id]/poll/route.ts",
+        "app/api/tasks/[id]/check/route.ts",
+        "app/api/tasks/[id]/confirm/route.ts",
+        "app/api/rules/route.ts",
+        "app/api/runs/route.ts",
+        "app/api/trace/[id]/route.ts",
+        "app/api/trace/export/route.ts",
+        "tests/runner.test.ts",
+        "tests/decide.test.ts",
+        "tests/check.test.ts",
+        "tests/trace-api.test.ts"
+      ],
+      "produces": [
+        "contract:lib/types.ts#TaskView"
+      ],
+      "consumes": [
+        "T02:lib/fo/client.ts",
+        "T01:lib/rules.ts"
+      ],
+      "runtime": {
+        "ports": [
+          3000
+        ],
+        "db": "data/test.db"
+      },
       "isolation": "main",
-      "risk": ["external-side-effect"],
-      "acceptance": ["AC-3", "AC-4", "AC-5", "AC-6", "AC-7", "AC-10"],
-      "verify": ["npm test -- runner", "npm test -- decide", "npm test -- check", "npm test -- trace-api", "npm run typecheck"],
+      "risk": [
+        "external-side-effect"
+      ],
+      "acceptance": [
+        "AC-3",
+        "AC-4",
+        "AC-5",
+        "AC-6",
+        "AC-7",
+        "AC-10"
+      ],
+      "verify": [
+        "npm test -- runner",
+        "npm test -- decide",
+        "npm test -- check",
+        "npm test -- trace-api",
+        "npm run typecheck"
+      ],
       "rollback": "git revert the T03 commit",
       "status": "todo",
       "notes": ""
@@ -73,15 +213,43 @@
       "objective": "Tokens and fonts from UI-SPEC §14; the ledger page: top bar with run chip and connection chips, caption, rules strip, compose bar, held card, receipt rows with claim and proof halves and the perforated edge, status discs; polling every 3 s; the verified strip unfold; ?demo=1 seed; FO_MODE=fake labels",
       "role": "frontend-engineer",
       "size": "L",
-      "deps": ["T03"],
-      "writes": ["app/globals.css", "app/layout.tsx", "app/page.tsx", "app/components/**", "lib/seed.ts", "seed/earlier-run.json", "tests/states.test.ts", "public/icon.svg", "app/icon.svg"],
+      "deps": [
+        "T03"
+      ],
+      "writes": [
+        "app/globals.css",
+        "app/layout.tsx",
+        "app/page.tsx",
+        "app/components/**",
+        "lib/seed.ts",
+        "seed/earlier-run.json",
+        "tests/states.test.ts",
+        "public/icon.svg",
+        "app/icon.svg"
+      ],
       "produces": [],
-      "consumes": ["T03:lib/types.ts#TaskView"],
-      "runtime": {"ports": [3000], "db": "data/dev.db"},
+      "consumes": [
+        "T03:lib/types.ts#TaskView"
+      ],
+      "runtime": {
+        "ports": [
+          3000
+        ],
+        "db": "data/dev.db"
+      },
       "isolation": "main",
       "risk": [],
-      "acceptance": ["AC-8", "AC-11", "AC-13", "observe: J1 and J2 run end to end in the browser on the fake Fo, the strip unfolds on verify, the held card offers the three choices"],
-      "verify": ["npm test -- states", "npm run typecheck", "npm run build"],
+      "acceptance": [
+        "AC-8",
+        "AC-11",
+        "AC-13",
+        "observe: J1 and J2 run end to end in the browser on the fake Fo, the strip unfolds on verify, the held card offers the three choices"
+      ],
+      "verify": [
+        "npm test -- states",
+        "npm run typecheck",
+        "npm run build"
+      ],
       "rollback": "git revert the T04 commit",
       "status": "todo",
       "notes": ""
@@ -92,15 +260,40 @@
       "objective": "Google OAuth (authorization code, offline, calendar.readonly) with tokens in SQLite and refresh; events.list within the postcondition window with title-contains matching; the live oracle wired into /check; re-ask Fo once on a miss; the manual tick path; /connect page for Fo and Google with their own error text",
       "role": "product-engineer",
       "size": "M",
-      "deps": ["T04"],
-      "writes": ["lib/google.ts", "app/api/google/connect/route.ts", "app/api/google/callback/route.ts", "app/connect/page.tsx", "tests/google.test.ts"],
+      "deps": [
+        "T04"
+      ],
+      "writes": [
+        "lib/google.ts",
+        "app/api/google/connect/route.ts",
+        "app/api/google/callback/route.ts",
+        "app/connect/page.tsx",
+        "tests/google.test.ts"
+      ],
       "produces": [],
-      "consumes": ["T03:lib/oracle.ts"],
-      "runtime": {"ports": [3000], "db": "data/dev.db"},
+      "consumes": [
+        "T03:lib/oracle.ts"
+      ],
+      "runtime": {
+        "ports": [
+          3000
+        ],
+        "db": "data/dev.db"
+      },
       "isolation": "main",
-      "risk": ["auth"],
-      "acceptance": ["AC-6", "AC-7", "WHEN the Google token is expired THE SYSTEM SHALL refresh it once before the check; IF refresh fails THEN the row SHALL read 'no calendar connected; confirm by hand'"],
-      "verify": ["npm test -- google", "npm test -- check", "npm run typecheck"],
+      "risk": [
+        "auth"
+      ],
+      "acceptance": [
+        "AC-6",
+        "AC-7",
+        "WHEN the Google token is expired THE SYSTEM SHALL refresh it once before the check; IF refresh fails THEN the row SHALL read 'no calendar connected; confirm by hand'"
+      ],
+      "verify": [
+        "npm test -- google",
+        "npm test -- check",
+        "npm run typecheck"
+      ],
       "rollback": "git revert the T05 commit; the fake oracle stays",
       "status": "todo",
       "notes": "Needs the user's Google Cloud OAuth client id and secret in .env.local and their account as a test user; until then the fake oracle serves the states"
@@ -111,15 +304,40 @@
       "objective": "The trace drawer (events in order, tool names, the check with the event id, the run-count table, Export trace), ?state= fixtures for every row state and the empty and disconnected ledgers, ?record=1 (toasts docked, no hover-only), Alt+Shift+R reset and Alt+Shift+P replay of the recorded real run, reduced-motion variants",
       "role": "frontend-engineer",
       "size": "M",
-      "deps": ["T04"],
-      "writes": ["app/components/TraceDrawer.tsx", "app/components/RunChip.tsx", "lib/fixtures.ts", "app/page.tsx", "app/globals.css", "tests/states.test.ts"],
+      "deps": [
+        "T04"
+      ],
+      "writes": [
+        "app/components/TraceDrawer.tsx",
+        "app/components/RunChip.tsx",
+        "lib/fixtures.ts",
+        "app/page.tsx",
+        "app/globals.css",
+        "tests/states.test.ts"
+      ],
       "produces": [],
-      "consumes": ["T03:app/api/trace/[id]/route.ts"],
-      "runtime": {"ports": [3000], "db": "data/dev.db"},
+      "consumes": [
+        "T03:app/api/trace/[id]/route.ts"
+      ],
+      "runtime": {
+        "ports": [
+          3000
+        ],
+        "db": "data/dev.db"
+      },
       "isolation": "main",
       "risk": [],
-      "acceptance": ["AC-9", "AC-10", "observe: every ?state= renders at 390 and 1440; ?record=1 keeps toasts clear of the rows"],
-      "verify": ["npm test -- states", "npm test -- trace-api", "npm run typecheck", "npm run build"],
+      "acceptance": [
+        "AC-9",
+        "AC-10",
+        "observe: every ?state= renders at 390 and 1440; ?record=1 keeps toasts clear of the rows"
+      ],
+      "verify": [
+        "npm test -- states",
+        "npm test -- trace-api",
+        "npm run typecheck",
+        "npm run build"
+      ],
       "rollback": "git revert the T06 commit",
       "status": "todo",
       "notes": ""
@@ -130,16 +348,29 @@
       "objective": "/about with the UI-SPEC §9 landing block; README first screen (one sentence, a screenshot, the video and repo links filled or marked as pending in a way submit check accepts only when filled), the live-vs-simulated table, the disclosure sentence; the wordmark and icon.svg; OG image",
       "role": "frontend-engineer",
       "size": "S",
-      "deps": ["T06"],
-      "writes": ["app/about/page.tsx", "README.md", "app/icon.svg", "app/opengraph-image.tsx", "public/screenshot-ledger.png"],
+      "deps": [
+        "T06"
+      ],
+      "writes": [
+        "app/about/page.tsx",
+        "README.md",
+        "app/icon.svg",
+        "app/opengraph-image.tsx",
+        "public/screenshot-ledger.png"
+      ],
       "produces": [],
       "consumes": [],
       "runtime": {},
       "isolation": "main",
       "risk": [],
       "kind": "docs",
-      "acceptance": ["WHEN a stranger reads /about or the README's first screen THE SYSTEM SHALL say what Receipts is, who it is for and what to do first, in product copy with no buzzwords (B17 cold read)"],
-      "verify": ["npm run build", "npm run lint"],
+      "acceptance": [
+        "WHEN a stranger reads /about or the README's first screen THE SYSTEM SHALL say what Receipts is, who it is for and what to do first, in product copy with no buzzwords (B17 cold read)"
+      ],
+      "verify": [
+        "npm run build",
+        "npm run lint"
+      ],
       "rollback": "git revert the T07 commit",
       "status": "todo",
       "notes": ""
@@ -150,17 +381,29 @@
       "objective": "Record a backup take of J1 and J2 (fake Fo if the real one is not connected yet, labelled on screen) with the demo script, so a take exists before the freeze",
       "role": "product-engineer",
       "size": "S",
-      "deps": ["T06"],
-      "writes": ["submission/takes/"],
+      "deps": [
+        "T06"
+      ],
+      "writes": [
+        "submission/takes/"
+      ],
       "produces": [],
       "consumes": [],
-      "runtime": {"ports": [3000]},
+      "runtime": {
+        "ports": [
+          3000
+        ]
+      },
       "isolation": "main",
       "risk": [],
       "kind": "record",
       "suite": false,
-      "acceptance": ["observe: a take file exists with the strip unfolding and the held card"],
-      "verify": ["observe: backup take recorded and its path written to .prod-build/state.md"],
+      "acceptance": [
+        "observe: a take file exists with the strip unfolding and the held card"
+      ],
+      "verify": [
+        "observe: backup take recorded and its path written to .prod-build/state.md"
+      ],
       "rollback": "none; a file",
       "status": "todo",
       "notes": "The judged take must be FO_MODE=live; this one is the fallback only"
@@ -171,16 +414,38 @@
       "objective": "foldcheck at 1440 and 390 with the action and result named; the axe and screenshot loop over the states; keyboard path; three demo runs in a row with reset; one run on an input nobody prepared; a fresh reviewer and bug hunter over the diff and the contract; fixes through failing tests",
       "role": "code-reviewer",
       "size": "M",
-      "deps": ["T07"],
-      "writes": ["qa/**", ".prod-build/reports/**", "tests/**", "app/**", "lib/**"],
+      "deps": [
+        "T07"
+      ],
+      "writes": [
+        "qa/**",
+        ".prod-build/reports/**",
+        "tests/**",
+        "app/**",
+        "lib/**"
+      ],
       "produces": [],
       "consumes": [],
-      "runtime": {"ports": [3000], "db": "data/dev.db"},
+      "runtime": {
+        "ports": [
+          3000
+        ],
+        "db": "data/dev.db"
+      },
       "isolation": "main",
       "risk": [],
       "kind": "qa",
-      "acceptance": ["AC-8", "AC-9", "observe: foldcheck passes at both sizes; three consecutive demo runs succeed on the fake Fo; blocking findings reproduced and fixed"],
-      "verify": ["npm test", "npm run typecheck", "npm run build", "observe: foldcheck json at qa/fold/foldcheck.json passes"],
+      "acceptance": [
+        "AC-8",
+        "AC-9",
+        "observe: foldcheck passes at both sizes; three consecutive demo runs succeed on the fake Fo; blocking findings reproduced and fixed"
+      ],
+      "verify": [
+        "npm test",
+        "npm run typecheck",
+        "npm run build",
+        "observe: foldcheck json at qa/fold/foldcheck.json passes"
+      ],
       "rollback": "git revert the fix commits individually",
       "status": "todo",
       "notes": ""
@@ -191,16 +456,33 @@
       "objective": "Secrets scan (nothing in git, nothing in client bundles), env vars documented in .env.example, zod validation on every write route, token redaction in the export, dependency audit; remove scaffold leftovers, unused files and dependencies by the evidence ladder",
       "role": "security-reviewer",
       "size": "S",
-      "deps": ["T09"],
-      "writes": ["app/**", "lib/**", "package.json", "package-lock.json", ".env.example", "public/**"],
+      "deps": [
+        "T09"
+      ],
+      "writes": [
+        "app/**",
+        "lib/**",
+        "package.json",
+        "package-lock.json",
+        ".env.example",
+        "public/**"
+      ],
       "produces": [],
       "consumes": [],
       "runtime": {},
       "isolation": "main",
       "risk": [],
       "kind": "security",
-      "acceptance": ["IF a token-like string appears in a trace payload THEN the export SHALL redact it", "WHEN the repository is scanned THE SYSTEM SHALL contain no secret and no data/ file"],
-      "verify": ["npm test -- trace", "npm run build", "npm audit --omit=dev --audit-level=high", "git ls-files | grep -c '^data/' | grep -q '^0$'"],
+      "acceptance": [
+        "IF a token-like string appears in a trace payload THEN the export SHALL redact it",
+        "WHEN the repository is scanned THE SYSTEM SHALL contain no secret and no data/ file"
+      ],
+      "verify": [
+        "npm test -- trace",
+        "npm run build",
+        "npm audit --omit=dev --audit-level=high",
+        "git ls-files | grep -c '^data/' | grep -q '^0$'"
+      ],
       "rollback": "git revert the T10 commit",
       "status": "todo",
       "notes": ""
@@ -211,8 +493,14 @@
       "objective": "SUBMISSION.md with the write-up (who it is for, what was built at the event, what existed before, what is mocked), the build note (tools the agent uses, what was added on top, one thing that did not work), the run count with its number, the X post text under 280 characters opening on the judge card; the trace file of the recorded run at submission/trace-<run>.jsonl; README links filled; pb.py submit check passes; rules confirmed with evidence",
       "role": "product-engineer",
       "size": "S",
-      "deps": ["T10"],
-      "writes": ["SUBMISSION.md", "submission/**", "README.md"],
+      "deps": [
+        "T10"
+      ],
+      "writes": [
+        "SUBMISSION.md",
+        "submission/**",
+        "README.md"
+      ],
       "produces": [],
       "consumes": [],
       "runtime": {},
@@ -220,8 +508,13 @@
       "risk": [],
       "kind": "submit",
       "suite": false,
-      "acceptance": ["AC-14"],
-      "verify": ["python3 .prod-build/pb.py rules check", "python3 .prod-build/pb.py window"],
+      "acceptance": [
+        "AC-14"
+      ],
+      "verify": [
+        "python3 .prod-build/pb.py rules check",
+        "python3 .prod-build/pb.py window"
+      ],
       "rollback": "none; documents",
       "status": "todo",
       "notes": "The X post and the Discord form are the user's to send; the text and the files are prepared here"
@@ -232,20 +525,38 @@
       "objective": "Once the freeze begins and the user's Fo and Google connections exist: run the demo task three or more times, record the one unedited take with FO_MODE=live and ?record=1, export its trace, and update the run count",
       "role": "product-engineer",
       "size": "S",
-      "deps": ["T11"],
-      "writes": ["submission/takes/", "submission/trace-*.jsonl", "SUBMISSION.md"],
+      "deps": [
+        "T11"
+      ],
+      "writes": [
+        "submission/takes/",
+        "submission/trace-*.jsonl",
+        "SUBMISSION.md"
+      ],
       "produces": [],
       "consumes": [],
-      "runtime": {"ports": [3000], "db": "data/dev.db"},
+      "runtime": {
+        "ports": [
+          3000
+        ],
+        "db": "data/dev.db"
+      },
       "isolation": "main",
-      "risk": ["external-side-effect"],
+      "risk": [
+        "external-side-effect"
+      ],
       "kind": "record",
       "suite": false,
-      "acceptance": ["observe: the take shows the appointment appearing in Google Calendar and the receipt flipping to verified in one unedited take; the trace file matches the take"],
-      "verify": ["observe: final take recorded, trace exported, run count updated in SUBMISSION.md"],
+      "acceptance": [
+        "observe: the take shows the appointment appearing in Google Calendar and the receipt flipping to verified in one unedited take; the trace file matches the take"
+      ],
+      "verify": [
+        "observe: final take recorded, trace exported, run count updated in SUBMISSION.md"
+      ],
       "rollback": "the backup take from T08",
       "status": "todo",
       "notes": "Needs the user: Wajo OAuth (join code), Google OAuth client, a second mailbox as the clinic"
     }
-  ]
+  ],
+  "base": "e079f55"
 }
