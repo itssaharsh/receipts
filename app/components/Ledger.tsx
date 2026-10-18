@@ -269,7 +269,7 @@ export function Ledger({ initial, fixture, record, demo }: { initial: LedgerInit
       <div role="status" aria-live="polite" className="sr-only">
         {tasks.find((t) => t.status === 'verified') ? 'A receipt was verified from your calendar.' : ''}
       </div>
-      {trace && <TraceDrawer task={trace.task} events={trace.events} loading={trace.loading} runCount={runCount} exportHref={exportHref} onClose={closeTrace} returnFocusTo={lastTraceButton.current} />}
+      {trace && <TraceDrawer task={trace.task} events={trace.events} loading={trace.loading} runCount={runCount} exportHref={exportHref} onClose={closeTrace} returnFocusTo={lastTraceButton} />}
     </main>
   );
 }

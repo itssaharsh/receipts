@@ -66,7 +66,7 @@ export function TraceDrawer({
   runCount: RunCount;
   exportHref: string | null;
   onClose: () => void;
-  returnFocusTo?: HTMLElement | null;
+  returnFocusTo?: React.RefObject<HTMLElement | null>;
 }) {
   const closeRef = useRef<HTMLButtonElement>(null);
   useEffect(() => {
@@ -77,7 +77,7 @@ export function TraceDrawer({
     window.addEventListener('keydown', onKey);
     return () => {
       window.removeEventListener('keydown', onKey);
-      returnFocusTo?.focus();
+      returnFocusTo?.current?.focus();
     };
   }, [onClose, returnFocusTo]);
 

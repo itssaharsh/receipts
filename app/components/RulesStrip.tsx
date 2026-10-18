@@ -37,6 +37,7 @@ export function RulesStrip({ rules, onAdd, readOnly }: { rules: Rule[]; onAdd?: 
   return (
     <section aria-label="Standing rules" className="px-4 sm:px-6 py-3 border-b border-line">
       <div className="flex flex-wrap items-baseline gap-x-8 gap-y-2">
+        <h2 className="label uppercase tracking-[0.08em]">Your rules</h2>
         {rules.length === 0 && <p className="text-ink-muted">No rules yet: everything waits for you.</p>}
         {rules.map((r) => (
           <div key={r.id} className="flex items-baseline gap-2">
