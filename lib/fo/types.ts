@@ -86,7 +86,9 @@ export function parseFoReply(result: CallToolResult): FoReply {
 
 export function parseFoConversation(result: CallToolResult, fallbackId: string): FoConversation {
   const obj = asObject(result);
-  const messagesRaw = obj && Array.isArray(obj.messages) ? (obj.messages as unknown[]) : [];
+  // the live server returns { conversation: {conversationId, title, …}, turns: [{role, text}] }; the simulated one returns { messages }
+  const messagesRaw = obj && Array.isArray(obj.messages) ? (obj.messages as unknown[]) : obj && Array.isArray(obj.turns) ? (obj.turns as unknown[]) : [];
+  const nested = obj && typeof obj.conversation === 'object' && obj.conversation ? (obj.conversation as Record<string, unknown>) : null;
   const messages: FoConversationMessage[] = messagesRaw.map((m) => {
     const r = (m ?? {}) as Record<string, unknown>;
     const roleRaw = typeof r.role === 'string' ? r.role.toLowerCase() : '';
@@ -97,7 +99,7 @@ export function parseFoConversation(result: CallToolResult, fallbackId: string):
     const text = textBlocks(result).join('\n');
     if (text) messages.push({ role: 'other', text });
   }
-  return { conversationId: str(obj?.conversationId ?? obj?.conversation_id) ?? fallbackId, messages, raw: result };
+  return { conversationId: str(obj?.conversationId ?? obj?.conversation_id ?? nested?.conversationId ?? nested?.id) ?? fallbackId, messages, raw: result };
 }
 
 export interface FoToolInfo {

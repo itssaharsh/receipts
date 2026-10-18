@@ -86,3 +86,25 @@ describe('the simulated Fo follows the errand', () => {
     expect(fakePlan('Cancel my gym membership').reply).toMatch(/cancellation notice/);
   });
 });
+
+
+describe('the live server\'s conversation shape', () => {
+  it('reads turns[] and the nested conversation id, and the claim is the last assistant turn', async () => {
+    const { parseFoConversation } = await import('@/lib/fo/types');
+    const { lastFoText } = await import('@/lib/fo/client');
+    const live = {
+      content: [{ type: 'text', text: 'Assistant Capabilities Inquiry\n\nuser: Reply…\n\nassistant: I can research and compare options.' }],
+      structuredContent: {
+        conversation: { conversationId: '41159d0e-cada-449f-89cc-8d2058e2adfc', title: 'Assistant Capabilities Inquiry', channel: 'chat', startedAt: '2026-10-18T14:53:03.381Z' },
+        turns: [
+          { role: 'user', text: 'Reply with one short sentence saying what you can do for me.' },
+          { role: 'assistant', text: 'I can research and compare options, make calls and emails to businesses for you.' },
+        ],
+      },
+    } as unknown as import('@modelcontextprotocol/sdk/types.js').CallToolResult;
+    const conv = parseFoConversation(live, 'fallback');
+    expect(conv.conversationId).toBe('41159d0e-cada-449f-89cc-8d2058e2adfc');
+    expect(conv.messages.map((m) => m.role)).toEqual(['user', 'fo']);
+    expect(lastFoText(conv)).toBe('I can research and compare options, make calls and emails to businesses for you.');
+  });
+});
