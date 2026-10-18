@@ -438,3 +438,21 @@ html[data-record="1"] [data-tooltip]::after {
   padding: 8px 12px;
   z-index: 30;
 }
+
+/* fields a draft just filled: one soft flash, then still */
+.drafted .field {
+  animation: draft-in 1.2s ease-out;
+}
+@keyframes draft-in {
+  0% {
+    background: var(--accent-container);
+  }
+  100% {
+    background: var(--surface-1);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .drafted .field {
+    animation: none;
+  }
+}

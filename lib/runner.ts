@@ -1,3 +1,4 @@
+import type { DraftMeta } from './types';
 import crypto from 'node:crypto';
 import { runPostconditionCheck, fmtWall } from './check';
 import type { Db } from './db';
@@ -51,7 +52,7 @@ async function withTaskLock(taskId: string, fn: () => Promise<Task>, ifBusy: () 
 }
 
 /** Evaluate a new task against the rules; dispatch it when allowed, hold it otherwise. */
-export async function createTask(deps: RunnerDeps, raw: TaskInput): Promise<Task> {
+export async function createTask(deps: RunnerDeps, raw: TaskInput, meta: { draft?: DraftMeta } = {}): Promise<Task> {
   const input = TaskInputSchema.parse(raw);
   const { db } = deps;
   const decision = evaluate(input, listRules(db), listContacts(db));
@@ -79,6 +80,16 @@ export async function createTask(deps: RunnerDeps, raw: TaskInput): Promise<Task
     checkedAt: null,
   };
   insertTask(db, task);
+  if (meta.draft) {
+    // how the fields were proposed; the rules below evaluate what the person confirmed, never the draft
+    const d = meta.draft;
+    writeEvent(db, {
+      ...trace(task),
+      kind: 'draft',
+      summary: d.source === 'model' ? `fields drafted by ${d.model ?? 'a model'} in ${d.ms} ms, confirmed by you: ${d.summary}` : `fields drafted from the words (no model), confirmed by you: ${d.summary}`,
+      payload: { draft: d },
+    });
+  }
   writeEvent(db, {
     ...trace(task),
     kind: 'decision',

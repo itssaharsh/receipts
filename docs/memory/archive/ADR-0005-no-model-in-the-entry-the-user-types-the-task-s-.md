@@ -2,7 +2,7 @@
 id: ADR-0005
 type: decision
 title: No model in the entry; the user types the task's fields and the postcondition
-status: active
+status: superseded
 scope: project
 components: compose, rules
 triggers: 
@@ -15,6 +15,7 @@ harmful: 0
 cite_hash: 44b1084053733de4
 created: 2026-10-18
 source: unknown
+superseded_by: ADR-0006
 ---
 
 Context: no Claude API credits; the evaluator and the checker decide.

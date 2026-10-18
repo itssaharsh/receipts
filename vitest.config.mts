@@ -9,6 +9,7 @@ export default defineConfig({
       DB_PATH: ':memory:',
       TRACE_PATH: path.join(process.cwd(), 'data', 'test-trace.jsonl'),
       FO_MODE: 'fake',
+      DRAFT_PROVIDER: 'none',
     },
     testTimeout: 20000,
   },

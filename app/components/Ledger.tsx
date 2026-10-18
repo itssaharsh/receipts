@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { fixtureEvents, type FixtureState } from '@/lib/fixtures';
-import type { Contact, Rule, RuleInput, RunCount, Task, TaskInput, TraceEvent, UserDecision } from '@/lib/types';
+import type { Contact, Rule, RuleInput, RunCount, Task, TaskInput, TraceEvent, UserDecision, DraftMeta } from '@/lib/types';
 import { ACTIVE_STATUSES } from '@/lib/view';
 import { Compose } from './Compose';
 import { HeldCard } from './HeldCard';
@@ -183,7 +183,7 @@ export function Ledger({ initial, fixture, record, demo }: { initial: LedgerInit
 
   const blockedReason = !status.foConnected ? 'Connect Fo first' : null;
 
-  async function send(input: TaskInput) {
+  async function send(input: TaskInput & { draft?: DraftMeta }) {
     const { task } = await api<{ task: Task }>('/api/tasks', input);
     upsert(task, true);
     refreshMeta();

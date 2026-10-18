@@ -84,3 +84,4 @@ qa/shots/
 qa/fold/
 qa/dev.log
 qa/prod.log
+.env.vercel*

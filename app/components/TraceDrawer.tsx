@@ -9,6 +9,7 @@ function hhmmss(iso: string): string {
 }
 
 const KIND_WORD: Record<TraceEvent['kind'], string> = {
+  draft: 'drafted',
   decision: 'rule',
   user_decision: 'you',
   list_tools: 'tools/list',

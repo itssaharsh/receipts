@@ -2,7 +2,9 @@ import { NextResponse, type NextRequest } from 'next/server';
 import { badRequest, errorResponse, getDeps, readJson } from '@/lib/deps';
 import { createTask } from '@/lib/runner';
 import { currentRunId, listTasks } from '@/lib/store';
-import { TaskInputSchema } from '@/lib/types';
+import { DraftMetaSchema, TaskInputSchema } from '@/lib/types';
+
+const CreateBodySchema = TaskInputSchema.extend({ draft: DraftMetaSchema.optional() });
 
 export const dynamic = 'force-dynamic';
 
@@ -15,10 +17,11 @@ export async function GET(req: NextRequest) {
 
 /** POST /api/tasks {TaskInput} -> 201 {task}: evaluated against the rules; dispatched to Fo when allowed, held otherwise. */
 export async function POST(req: NextRequest) {
-  const parsed = TaskInputSchema.safeParse(await readJson(req));
+  const parsed = CreateBodySchema.safeParse(await readJson(req));
   if (!parsed.success) return badRequest('invalid task', parsed.error.issues);
   try {
-    const task = await createTask(getDeps(), parsed.data);
+    const { draft, ...input } = parsed.data;
+    const task = await createTask(getDeps(), input, { draft });
     return NextResponse.json({ task }, { status: 201 });
   } catch (err) {
     return errorResponse(err);

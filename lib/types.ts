@@ -71,6 +71,16 @@ export const TaskInputSchema = z.object({
 });
 export type TaskInput = z.infer<typeof TaskInputSchema>;
 
+/** How the fields of a task were proposed before the person confirmed them (logged in the trace; never used by the rules). */
+export const DraftMetaSchema = z.object({
+  source: z.enum(['model', 'words']),
+  model: z.string().max(120).nullable(),
+  ms: z.number().int().nonnegative(),
+  summary: z.string().trim().max(300),
+  note: z.string().max(300).nullable().optional(),
+});
+export type DraftMeta = z.infer<typeof DraftMetaSchema>;
+
 export const TaskStatusSchema = z.enum([
   'held', // waiting for the user's decision
   'withheld', // declined; never sent to Fo
@@ -134,6 +144,7 @@ export type Task = z.infer<typeof TaskSchema>;
 
 // ---- trace ----------------------------------------------------------------
 export const TraceKindSchema = z.enum([
+  'draft',
   'decision',
   'user_decision',
   'list_tools',

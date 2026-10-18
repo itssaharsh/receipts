@@ -231,7 +231,7 @@
     {
       "id": "T04",
       "title": "Ledger UI golden path with tokens and fonts",
-      "objective": "Tokens and fonts from UI-SPEC \u00a714; the ledger page: top bar with run chip and connection chips, caption, rules strip, compose bar, held card, receipt rows with claim and proof halves and the perforated edge, status discs; polling every 3 s; the verified strip unfold; ?demo=1 seed; FO_MODE=fake labels",
+      "objective": "Tokens and fonts from UI-SPEC §14; the ledger page: top bar with run chip and connection chips, caption, rules strip, compose bar, held card, receipt rows with claim and proof halves and the perforated edge, status discs; polling every 3 s; the verified strip unfold; ?demo=1 seed; FO_MODE=fake labels",
       "role": "frontend-engineer",
       "size": "L",
       "deps": [
@@ -408,7 +408,7 @@
     {
       "id": "T07",
       "title": "Landing layer: /about, README first screen, wordmark and favicon",
-      "objective": "/about with the UI-SPEC \u00a79 landing block; README first screen (one sentence, a screenshot, the video and repo links filled or marked as pending in a way submit check accepts only when filled), the live-vs-simulated table, the disclosure sentence; the wordmark and icon.svg; OG image",
+      "objective": "/about with the UI-SPEC §9 landing block; README first screen (one sentence, a screenshot, the video and repo links filled or marked as pending in a way submit check accepts only when filled), the live-vs-simulated table, the disclosure sentence; the wordmark and icon.svg; OG image",
       "role": "frontend-engineer",
       "size": "S",
       "deps": [
@@ -657,6 +657,98 @@
       "rollback": "the backup take from T08",
       "status": "todo",
       "notes": "Blocked on the person: Wajo account above Fo Mini (join code WAJOCLAUDE) with Google Calendar connected inside Wajo, a Google Cloud OAuth client with redirect http://localhost:3100/api/google/callback, DEMO_CLINIC_EMAIL, FO_MODE=live; then take-script.md."
+    },
+    {
+      "id": "T13",
+      "title": "One-sentence intake: a model drafts the fields and the check, rules decide, the person confirms (no-model fallback)",
+      "status": "done",
+      "depends_on": [
+        "T09"
+      ],
+      "writes": [
+        "lib/draft.ts",
+        "lib/types.ts",
+        "lib/runner.ts",
+        "app/api/draft/route.ts",
+        "app/api/tasks/route.ts",
+        "app/components/Compose.tsx",
+        "app/components/Ledger.tsx",
+        "app/globals.css",
+        "tests/draft.test.ts",
+        "tests/trace-api.test.ts",
+        ".env.example",
+        "README.md",
+        "SUBMISSION.md",
+        "ARCHITECTURE.md",
+        "docs/memory/**"
+      ],
+      "acceptance": [
+        "WHEN the person types an errand and pauses THE SYSTEM SHALL propose counterparty, kind, amount and the postcondition from the sentence, say which drafter did it, and let the person edit every field before sending",
+        "WHEN the model is unavailable or slow THE SYSTEM SHALL draft from the words alone within 1 s and say so",
+        "WHEN a drafted task is sent THE SYSTEM SHALL evaluate the rules on the confirmed fields only and log the draft in the trace"
+      ],
+      "verify": [
+        "npm test",
+        "npm run typecheck",
+        "npm run build",
+        "npm run lint"
+      ],
+      "notes": "Provider: OpenAI-compatible route (Vercel AI Gateway by OIDC or key; any base URL), heuristics as the baseline. Bedrock refused (model access), Pollinations 13 s and 1 reply per 30 s.",
+      "base": "5a114ec",
+      "started_after": 115,
+      "evidence": [
+        "E0116",
+        "E0117",
+        "E0118",
+        "E0119"
+      ]
+    },
+    {
+      "id": "T14",
+      "title": "Public demo on Vercel: node:sqlite instead of the native module, PUBLIC_DEMO mode, deploy and smoke",
+      "status": "todo",
+      "depends_on": [
+        "T13"
+      ],
+      "writes": [
+        "lib/db.ts",
+        "package.json",
+        "package-lock.json",
+        "app/**",
+        "lib/**",
+        ".env.example",
+        "README.md",
+        "SUBMISSION.md",
+        "ARCHITECTURE.md"
+      ],
+      "acceptance": [
+        "WHEN a stranger opens the public URL THE SYSTEM SHALL show the ledger with the simulated run, every simulated row labelled, a banner saying what is simulated and how to run it with a real account",
+        "WHEN the public demo is opened THE SYSTEM SHALL never expose a connect flow or a token"
+      ],
+      "verify": [
+        "npm test",
+        "npm run typecheck",
+        "npm run build",
+        "observe: the deployed URL answers /api/status and renders the ledger with the simulated run, no console errors"
+      ]
+    },
+    {
+      "id": "T15",
+      "title": "Publish: GitHub repository, links in README and SUBMISSION.md, submit check",
+      "status": "todo",
+      "depends_on": [
+        "T14"
+      ],
+      "writes": [
+        "README.md",
+        "SUBMISSION.md"
+      ],
+      "acceptance": [
+        "AC-14"
+      ],
+      "verify": [
+        "python3 .prod-build/pb.py window"
+      ]
     }
   ],
   "base": "e079f55"
