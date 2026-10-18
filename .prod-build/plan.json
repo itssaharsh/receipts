@@ -327,8 +327,16 @@
         "npm run typecheck"
       ],
       "rollback": "git revert the T05 commit; the fake oracle stays",
-      "status": "todo",
-      "notes": "Needs the user's Google Cloud OAuth client id and secret in .env.local and their account as a test user; until then the fake oracle serves the states"
+      "status": "done",
+      "notes": "Needs the user's Google Cloud OAuth client id and secret in .env.local and their account as a test user; until then the fake oracle serves the states",
+      "base": "e475b64",
+      "started_after": 42,
+      "evidence": [
+        "E0044",
+        "E0045",
+        "E0046",
+        "E0047"
+      ]
     },
     {
       "id": "T06",

@@ -2,9 +2,12 @@ import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { getDb } from './db';
 import { getFo } from './fo/client';
+import { registerGoogleOracle } from './google';
 import { getOracle } from './oracle';
 import { FoNotConnectedError, type RunnerDeps } from './runner';
 import { ensureDefaults } from './store';
+
+registerGoogleOracle();
 
 /** Everything a route needs, built from the environment. Defaults are ensured once per call (idempotent, cheap). */
 export function getDeps(): RunnerDeps {
