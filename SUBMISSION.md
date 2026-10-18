@@ -44,5 +44,5 @@ One unedited take ↓ @wajo_ai + Claude. https://github.com/itssaharsh/receipts
 
 - Repository: https://github.com/itssaharsh/receipts
 - Public demo (simulated Fo and calendar, labelled; the drafter is live): https://receipts-lack-toes.vercel.app
-- Video: attached to the X post (one unedited take).
+- Video: attached to the X post, one unedited take. The backup take (2 min 20 s, recorded 18 Oct against the simulated Fo and calendar, both labelled on screen) is one uncut recording at real speed with a narration track and captions added over it, nothing cut, sped up or re-ordered; the live take replaces it when the real run is recorded.
 - Trace file: `submission/trace-<run>.jsonl`.
