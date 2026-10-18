@@ -19,6 +19,13 @@ export interface RowView {
   active: boolean;
 }
 
+/** The live Fo's progress lines run long ("Working for 51s: ... 5 steps so far. Fo's last note: \"...\""); the row shows the note itself. */
+export function tidyProgress(p: string): string {
+  const note = /Fo's last note: "([^"]+)"/.exec(p)?.[1];
+  const out = (note ?? p).trim();
+  return out.length > 180 ? out.slice(0, 179) + '…' : out;
+}
+
 export const STATUS_WORDS: Record<Task['status'], string> = {
   held: 'Held',
   withheld: 'Withheld',
@@ -73,7 +80,7 @@ export function describeTask(t: Task, rules: Rule[]): RowView {
     claimLine = t.foClaim ? `Fo says done: "${t.foClaim}"` : 'Fo says done';
   } else if (t.status === 'awaiting_user') claimLine = t.foQuestion ? `Fo asks: "${t.foQuestion}"` : 'Fo has a question';
   else if (t.status === 'dispatched') claimLine = t.dispatchedAt ? `sent to Fo ${hhmm(t.dispatchedAt)}` : 'sent to Fo';
-  else if (t.status === 'working') claimLine = lastProgress ? `Fo: "${lastProgress}"` : 'Fo is working';
+  else if (t.status === 'working') claimLine = lastProgress ? `Fo: "${tidyProgress(lastProgress)}"` : 'Fo is working';
   else if (t.error && t.status === 'allowed') claimLine = t.error;
 
   // the proof half

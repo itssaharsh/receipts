@@ -81,3 +81,12 @@ describe('row view model: every state has its words (AC-9, AC-7, AC-13)', () => 
     expect(ev[ev.length - 1].summary).toMatch(/found event 7kq2m0v9p1/);
   });
 });
+
+
+describe('long live progress lines', () => {
+  it('shows the note Fo wrote, not the whole status sentence', async () => {
+    const { tidyProgress } = await import('@/lib/view');
+    expect(tidyProgress('Working for 51s: working in the user\'s Wajo account (Sending Northfield Dental your confirmation), 5 steps so far. Fo\'s last note: "The event is already on your calendar, sending the email now."')).toBe('The event is already on your calendar, sending the email now.');
+    expect(tidyProgress('Fo is on it: Emailing Northfield Dental')).toBe('Fo is on it: Emailing Northfield Dental');
+  });
+});
