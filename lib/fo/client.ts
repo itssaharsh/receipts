@@ -2,7 +2,6 @@ import path from 'node:path';
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/streamableHttp.js';
 import { UnauthorizedError } from '@modelcontextprotocol/sdk/client/auth.js';
-import type { Transport } from '@modelcontextprotocol/sdk/shared/transport.js';
 import type { CallToolResult } from '@modelcontextprotocol/sdk/types.js';
 import type { Db } from '../db';
 import { writeEvent } from '../trace';
@@ -39,7 +38,6 @@ const DEFAULT_URL = 'https://mcp.api.wajo.ai/fo';
 export class FoClient {
   readonly provider: SqliteOAuthProvider;
   private client: Client | null = null;
-  private transport: Transport | null = null;
   private pendingTransport: StreamableHTTPClientTransport | null = null;
   private tools: FoToolInfo[] | null = null;
   private askArg = 'request';
@@ -70,14 +68,12 @@ export class FoClient {
       const t = await connectFakeFo();
       await client.connect(t);
       this.client = client;
-      this.transport = t;
       return { connected: true };
     }
     const t = this.newTransport();
     try {
       await client.connect(t);
       this.client = client;
-      this.transport = t;
       this.provider.clearPendingAuthorization();
       return { connected: true };
     } catch (err) {
@@ -131,7 +127,6 @@ export class FoClient {
       if (err instanceof UnauthorizedError || /401|unauthori[sz]ed/i.test((err as Error).message ?? '')) {
         // the token was refused and the refresh did not help: forget the session so connect() asks for a new one
         this.client = null;
-        this.transport = null;
         this.tools = null;
         throw new Error('Fo needs reconnecting: open /connect and connect Fo again.');
       }
@@ -204,7 +199,6 @@ export class FoClient {
       /* already closed */
     }
     this.client = null;
-    this.transport = null;
     this.tools = null;
   }
 }

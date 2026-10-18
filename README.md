@@ -6,7 +6,9 @@ Receipts sends your errands to Wajo's Fo agent under rules you wrote once, then 
 
 ![The Receipts ledger: a verified receipt with Fo's claim on the left and the calendar record on the right](public/screenshot-ledger.png)
 
-Built at the GSD (Get Sh\*t Done) Hackathon, Wajo × Claude, 17 to 19 October 2026. Everything here, including the planning notes kept outside this repository, was written during the event; the research package that chose the idea was finished on 18 October, after hacking opened. The demo video, the run trace and the run count are in `SUBMISSION.md`.
+Built at the GSD (Get Sh\*t Done) Hackathon, Wajo × Claude, 17 to 19 October 2026. Everything here, including the planning notes kept outside this repository, was written during the event; the research package that chose the idea was finished on 18 October, after hacking opened.
+
+Demo video: one unedited take, about 35 seconds, attached to the X post (form item A). The run trace and the run count are in `SUBMISSION.md`.
 
 ## What you see
 

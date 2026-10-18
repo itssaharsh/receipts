@@ -20,7 +20,7 @@ This file holds the form answers (items C to G) and the X post text. Items A (th
 
 **What the team added on top.** A deterministic rules evaluator (categories that always wait, an amount cap, a contacts-only gate with "approve and add a rule"), an OAuth 2.1 client so Receipts drives Fo from the person's own account rather than through a chat app, a postcondition per task checked against the person's own Google Calendar (the receipt is verified from the world, not from Fo's reply), a decision-and-receipt ledger, an append-only JSONL trace with token redaction, and a simulated Fo over the SDK's in-memory transport so the failure paths (401, a never-completing task, a declined task that must never reach Fo) are tested.
 
-**One thing that did not work.** A scripted take against the development server kept failing: Next's hot reload restarted the page mid-click, and the simulated calendar's event was pinned to one time zone while the browser filled the demo time in its own, so the check never matched. Both were fixed by recording against the production build and by defining the simulated event in the machine's own wall time; the live calendar has no such problem because the person's own calendar and browser share a zone.
+**One thing that did not work.** A scripted take against the development server kept failing: Next's hot reload restarted the page mid-click, and the simulated calendar's event was pinned to one time zone while the browser filled the demo time in its own, so the check never matched. Both were fixed by recording against the production build and by defining the simulated event in the machine's own wall time; the live calendar has no such problem because the person's own calendar and browser share a zone. A fresh review then found two things the simulated Fo could never show: the 3-second poll loop could overlap live `get_fo_reply` calls (which block for up to 40 s), so Fo's confirmation question could have been answered twice, and a task Fo had not accepted was being re-sent every 3 s. Both are fixed (one call in flight per task; a task is sent again only when the person asks) and tested; no live run was made before the fix.
 
 ## Run trace
 
@@ -30,7 +30,7 @@ This file holds the form answers (items C to G) and the X post text. Items A (th
 
 Live runs of the demo task (the dentist booking), attempted and succeeded: 0 attempted, 0 succeeded so far; the live Fo connection and the live calendar are the builder's accounts and are connected before the final take, after which this line is updated with the real numbers.
 
-Simulated runs during the build (simulated Fo and simulated calendar, not counted on the form): 7 attempted, 7 succeeded (the backup take, three consecutive QA runs, one unprepared-input run that ended unverified by design and was confirmed by hand, two seed runs).
+Simulated runs during the build (simulated Fo and simulated calendar, not counted on the form): 8 attempted, 8 succeeded (the backup take, four consecutive scripted QA runs, the last one after the review fixes, one unprepared-input run that ended unverified by design and was confirmed by hand, two seed runs). The reviewer's hand runs on the simulated Fo are not counted.
 
 ## X post (under 280 characters)
 
