@@ -219,9 +219,28 @@ export class FoClient {
   }
 }
 
+/** Fo's own account of the task: its turns after the person's last message, minus the sign-off chatter (invites, referral links). */
 export function lastFoText(conv: FoConversation): string | null {
+  let lastUser = -1;
+  for (let i = 0; i < conv.messages.length; i++) if (conv.messages[i].role === 'user') lastUser = i;
+  const after = conv.messages.slice(lastUser + 1).filter((m) => m.role !== 'user').map((m) => m.text);
+  const cleaned = cleanClaim(after.join('\n\n'));
+  if (cleaned) return cleaned;
   for (let i = conv.messages.length - 1; i >= 0; i--) if (conv.messages[i].role !== 'user') return conv.messages[i].text;
   return null;
+}
+
+/** Drop paragraphs that are not about the task (Wajo's invite postscript, referral links); keep the last substantive one and anything before it that reports the result. */
+export function cleanClaim(text: string | null | undefined): string | null {
+  if (!text) return null;
+  const paras = text
+    .split(/\n{2,}/)
+    .map((x) => x.trim())
+    .filter((x) => x && !/nearly forgot|wajo\.ai\/join|invites? (sitting|left|waiting)|utm_source=referral/i.test(x));
+  if (paras.length === 0) return null;
+  // the result is usually the last paragraph that says done/booked/sent; keep it and drop earlier running commentary
+  const done = [...paras].reverse().find((x) => /\b(done|booked|sent|emailed|confirmed|added|scheduled|ordered|cancelled|canceled|completed)\b/i.test(x));
+  return (done ?? paras[paras.length - 1]).slice(0, 600);
 }
 
 function short(s: string, n = 60): string {

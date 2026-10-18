@@ -108,3 +108,21 @@ describe('the live server\'s conversation shape', () => {
     expect(lastFoText(conv)).toBe('I can research and compare options, make calls and emails to businesses for you.');
   });
 });
+
+
+describe('the claim is the result, not the sign-off', () => {
+  it('drops the invite postscript and keeps the paragraph that reports the outcome', async () => {
+    const { cleanClaim, lastFoText } = await import('@/lib/fo/client');
+    const done = 'Done. The check-up is on your calendar Thursday, Oct 22, 3:00 PM IST: [Dentist check-up at Northfield Dental](https://www.google.com/calendar/event?eid=abc). I also emailed Northfield Dental to confirm the slot (copy in your inbox).';
+    const ps = "Oh, nearly forgot. You've got 7 Wajo invites sitting on your account. If you ever want to use one, it's https://wajo.ai/join?code=X&utm_source=referral&utm_medium=invite_link, or name someone and I'll email them.";
+    expect(cleanClaim(done + '\n\n' + ps)).toBe(done);
+    expect(cleanClaim(ps)).toBeNull();
+    const conv = { conversationId: 'c', raw: {} as never, messages: [
+      { role: 'user' as const, text: 'Book my dentist check-up' },
+      { role: 'fo' as const, text: 'On it, checking your Thursday slot first.' },
+      { role: 'fo' as const, text: done },
+      { role: 'fo' as const, text: ps },
+    ] };
+    expect(lastFoText(conv)).toBe(done);
+  });
+});

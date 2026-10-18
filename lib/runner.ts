@@ -3,7 +3,7 @@ import crypto from 'node:crypto';
 import { runPostconditionCheck, fmtWall } from './check';
 import type { Db } from './db';
 import { nowISO } from './db';
-import { lastFoText, type FoClient } from './fo/client';
+import { cleanClaim, lastFoText, type FoClient } from './fo/client';
 import type { FoReply } from './fo/types';
 import type { Oracle } from './oracle';
 import { evaluate, formatMoney } from './rules';
@@ -280,13 +280,13 @@ async function applyReply(deps: RunnerDeps, task: Task, reply: FoReply): Promise
       return handleQuestion(deps, task, reply.progress ?? reply.text ?? 'Fo has a question for you.', progress, convPatch);
 
     case 'complete': {
-      let claim = reply.text ?? reply.progress ?? null;
+      let claim = cleanClaim(reply.text) ?? reply.progress ?? null; // the completion message, minus Fo's sign-off chatter
       const convId = reply.conversationId ?? task.foConversationId;
       if (convId) {
         try {
           const conv = await fo.getFoConversation(convId, trace(task));
           const last = lastFoText(conv);
-          if (last) claim = last; // Fo's own last words are the claim, not the short reply
+          if (last && (!claim || claim.length < 20)) claim = last; // Fo's own turns when the reply itself said little
         } catch {
           /* the claim from the reply is enough */
         }
