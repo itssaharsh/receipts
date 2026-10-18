@@ -8,7 +8,7 @@ Receipts sends your errands to Wajo's Fo agent under rules you wrote once, then 
 
 Built at the GSD (Get Sh\*t Done) Hackathon, Wajo × Claude, 17 to 19 October 2026. Everything here, including the planning notes kept outside this repository, was written during the event; the research package that chose the idea was finished on 18 October, after hacking opened.
 
-Demo video: one unedited take, about 2 minutes 20 seconds, attached to the X post (form item A). The run trace and the run count are in `SUBMISSION.md`.
+Demo video: one unedited take of the live run, about 2 minutes 30 seconds, attached to the X post (form item A). The run trace and the run count are in `SUBMISSION.md`.
 
 Try the ledger without an account: **https://receipts-lack-toes.vercel.app** runs a simulated Fo and a simulated calendar (every row says so, and the banner says what is shared). The real run is the video; the repository is https://github.com/itssaharsh/receipts.
 
